@@ -29,7 +29,6 @@ typedef uint mypthread_t;
 	/* add important states in a thread control block */
 typedef struct threadControlBlock
 {
-
 	mypthread_t id;
 	//Thread status
 	int status;

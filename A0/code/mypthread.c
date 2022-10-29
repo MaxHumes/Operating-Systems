@@ -59,6 +59,38 @@ int mypthread_join(mypthread_t thread, void **value_ptr)
 	return 0;
 };
 
+//inserts thread into queue
+void enqueue(tcb* thread, queue* q){
+	//queue is empty
+	if(q->tail == NULL){
+		q->head = thread;
+		q->tail = thread;
+	}
+	//queue is not empty
+	else{
+		q->tail->next = thread;
+		q->tail = thread;
+	}
+}
+
+//returns NULL if queue is empty
+tcb* dequeue(queue* q){
+	//queue is empty
+	if(q->head == NULL){
+		return NULL;
+	}
+	//queue is not empty
+	tcb* temp = q->head;
+	q->head = q->head->next;
+	temp->next = NULL;
+
+	if(q->head == NULL){
+		q->tail = NULL;
+	}
+
+	return temp;
+}
+
 /* initialize the mutex lock */
 int mypthread_mutex_init(mypthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr)
 {
