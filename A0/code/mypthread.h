@@ -17,12 +17,12 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ucontext.h>
 
 //thread status
 #define READY 1
-#define YIELD 2
-#define BLOCKED 3
-#define RUNNING 4
+#define BLOCKED 2
+#define RUNNING 3
 
 typedef uint mypthread_t;
 
@@ -32,15 +32,28 @@ typedef struct threadControlBlock
 	mypthread_t id;
 	//Thread status
 	int status;
+	ucontext_t context;
 	//priorty for scheduler to choose which thread to select next
 	int priority;
 	//points to threads that were created by this thread
 	tcb* next;
 	//points to thread that created this thread
-	tcb* address;
+	mypthread_t* address;
 
 } tcb;
 
+
+
+/* mutex struct definition */
+typedef struct mypthread_mutex_t
+{
+
+	// YOUR CODE HERE
+	
+} mypthread_mutex_t;
+
+
+// Feel free to add your own auxiliary data structures (linked list or queue etc...)
 typedef struct queue{
 
 	tcb* head;
@@ -56,18 +69,6 @@ typedef struct scheduler{
 	int change;
 
 } scheduler;
-
-/* mutex struct definition */
-typedef struct mypthread_mutex_t
-{
-
-	// YOUR CODE HERE
-	
-} mypthread_mutex_t;
-
-
-// Feel free to add your own auxiliary data structures (linked list or queue etc...)
-
 
 
 /* Function Declarations: */

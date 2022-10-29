@@ -8,6 +8,10 @@
 // INITAILIZE ALL YOUR VARIABLES HERE
 // YOUR CODE HERE
 
+//used to define the type of scheduler to use (0 = RR, 1 = SJF)
+#define SCHED 0
+
+int threadID = 1;
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
@@ -18,7 +22,12 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 	   // create and initialize the context of this thread
 	   // allocate heap space for this thread's stack
 	   // after everything is all set, push this thread into the ready queue
-	
+	tcb* thisTCB = malloc(sizeof(*thisTCB));
+	thisTCB->id = thread;
+	thisTCB->next = NULL;
+	thisTCB->priority = 0;
+	thisTCB->status = READY;
+	thisTCB->address = thread;
 	
 
 	return 0;
@@ -144,6 +153,13 @@ static void schedule()
 	
 	// be sure to check the SCHED definition to determine which scheduling algorithm you should run
 	//   i.e. RR, PSJF or MLFQ
+	if(SCHED){
+		//run PSJF
+	}
+	else{
+		//run RR
+	}
+
 
 	return;
 }
