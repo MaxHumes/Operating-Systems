@@ -8,26 +8,34 @@
 // INITAILIZE ALL YOUR VARIABLES HERE
 // YOUR CODE HERE
 
-//used to define the type of scheduler to use (0 = RR, 1 = SJF)
+//used to define the type of scheduler to use (0 = FIFO, 1 = RR, 2 = SJF)
 #define SCHED 0
 
+
 int threadID = 1;
+int firstThread = 1;
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
-	   // YOUR CODE HERE	
 	
-	   // create a Thread Control Block
-	   // create and initialize the context of this thread
-	   // allocate heap space for this thread's stack
-	   // after everything is all set, push this thread into the ready queue
+	// create a Thread Control Block
 	tcb* thisTCB = malloc(sizeof(*thisTCB));
 	thisTCB->id = thread;
 	thisTCB->next = NULL;
 	thisTCB->priority = 0;
 	thisTCB->status = READY;
 	thisTCB->address = thread;
+
+	//initialize context
+	thisTCB->context.uc_link = NULL;
+	//allocate heap space for the thread's stack
+	thisTCB->context.uc_stack.ss_sp = malloc(STACK_SIZE);
+	thisTCB->context.uc_stack.ss_size = STACK_SIZE;
+	thisTCB->context.uc_stack.ss_flags = 0;
+
+	// after everything is all set, push this thread into the ready queue
+
 	
 
 	return 0;
@@ -153,11 +161,16 @@ static void schedule()
 	
 	// be sure to check the SCHED definition to determine which scheduling algorithm you should run
 	//   i.e. RR, PSJF or MLFQ
-	if(SCHED){
+	if(SCHED == 1){
+		//run RR
+		sched_RR();
+	}
+	else if(SCHED == 2){
 		//run PSJF
+		sched_PSJF();
 	}
 	else{
-		//run RR
+		//perform FIFO?
 	}
 
 

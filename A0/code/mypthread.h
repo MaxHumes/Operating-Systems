@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <ucontext.h>
 
+#define STACK_SIZE 5000
 //thread status
 #define READY 1
 #define BLOCKED 2
@@ -70,7 +71,7 @@ typedef struct scheduler{
 
 } scheduler;
 
-
+scheduler* myScheduler;
 /* Function Declarations: */
 
 /* create a new thread */
