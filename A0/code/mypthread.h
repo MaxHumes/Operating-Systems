@@ -37,7 +37,7 @@ typedef struct threadControlBlock
 	//priorty for scheduler to choose which thread to select next
 	int priority;
 	//points to threads that were created by this thread
-	tcb* next;
+	struct threadControlBlock* next;
 	//points to thread that created this thread
 	mypthread_t* address;
 
