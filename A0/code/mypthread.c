@@ -278,7 +278,7 @@ tcb* dequeue(queue** argQ){
 
 	//reference to the head of the queue
 	queue* temp = *argQ;
-	
+
 	//queue is empty
 	if(temp == NULL){
 		return NULL;
@@ -330,8 +330,7 @@ void timer_init(struct sigaction timer, struct itimerval interval){
     timer.sa_handler = &schedule;
     
 
-    if(sigaction(SIGALRM, &timer, NULL) < 0){//use SIGPROF/ITIMER_PROF?
-        //signal handler/sigaction failed?
+    if(sigaction(SIGALRM, &timer, NULL) < 0){
         perror("SIGACTION failed\n");
         exit(EXIT_FAILURE);
     }
