@@ -9,25 +9,45 @@
 // YOUR CODE HERE
 
 //used to define the type of scheduler to use (0 = FIFO, 1 = RR, 2 = SJF)
-#define SCHED 0
+#define SCHED 2
 
+static mypthread_t currThread;
+static tcb* currTCB;
+static struct sigaction timer;
+static struct itimerval interval;
 
-int threadID = 1;
-int firstThread = 1;
+int threadID = 0;
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
-	//initialize schedule
-	schedule_init();
+
+	if(threadID == 0){
+		currThread = threadID;
+		tcb* mainTCB = malloc(sizeof(tcb));
+
+		mainTCB->id = currThread;
+		mainTCB->waitingThread = -1;
+
+		mainTCB->status = READY;
+		mainTCB->elapsedQuantums = 0;
+
+		mainTCB->valPtr = NULL;
+		mainTCB->returnVal = NULL;
+
+		currTCB = mainTCB;
+		timer_init(timer, interval);
+		threadID++;
+		//atexit(freeTCBQueue);
+		getcontext(&(currTCB->context));
+	}
 
 	// create a Thread Control Block
 	tcb* thisTCB = malloc(sizeof(*thisTCB));
-	thisTCB->id = thread;
+	//thisTCB->id = thread;
 	thisTCB->next = NULL;
 	thisTCB->priority = 0;
 	thisTCB->status = READY;
-	thisTCB->address = thread;
 
 	//initialize context
 	thisTCB->context.uc_link = NULL;
@@ -37,7 +57,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 	thisTCB->context.uc_stack.ss_flags = 0;
 
 	// after everything is all set, push this thread into the ready queue
-	enqueue(thisTCB, &(myScheduler->Queues[thisTCB->priority]));
+	//enqueue(thisTCB, &(myScheduler->Queues[thisTCB->priority]));
 	
 	return 0;
 };
@@ -61,7 +81,7 @@ void mypthread_exit(void *value_ptr)
 
 	// preserve the return value pointer if not NULL
 	// deallocate any dynamic memory allocated when starting this thread
-	
+	currTCB->status = FINISHED;
 	return;
 };
 
@@ -74,40 +94,16 @@ int mypthread_join(mypthread_t thread, void **value_ptr)
 	// wait for a specific thread to terminate
 	// deallocate any dynamic memory created by the joining thread
 
+	//check if thread is finished
+
+	//set the thread to waiting
+	currTCB->status = WAITING;
+	currTCB->waitingThread = thread;
+
+
 	return 0;
 };
 
-//inserts thread into queue
-void enqueue(tcb* thread, queue* q){
-	//queue is empty
-	if(q->tail == NULL){
-		q->head = thread;
-		q->tail = thread;
-	}
-	//queue is not empty
-	else{
-		q->tail->next = thread;
-		q->tail = thread;
-	}
-}
-
-//returns NULL if queue is empty
-tcb* dequeue(queue* q){
-	//queue is empty
-	if(q->head == NULL){
-		return NULL;
-	}
-	//queue is not empty
-	tcb* temp = q->head;
-	q->head = q->head->next;
-	temp->next = NULL;
-
-	if(q->head == NULL){
-		q->tail = NULL;
-	}
-
-	return temp;
-}
 
 /* initialize the mutex lock */
 int mypthread_mutex_init(mypthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr)
@@ -153,24 +149,6 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex)
 	return 0;
 };
 
-//initialize the scheduler
-static void schedule_init(){
-	
-	//allocate memory for scheduler and queues
-	myScheduler = malloc(sizeof(scheduler));
-	myScheduler->Queues = malloc(NUM_OF_QUEUES * sizeof(queue));
-
-	//initialize the queues
-	for (int i = 0; i < NUM_OF_QUEUES; i++){
-		myScheduler->Queues[i].head = NULL;
-		myScheduler->Queues[i].tail = NULL;
-	}
-
-	//initialize scheduler variables
-	myScheduler->currentThread = NULL;
-	myScheduler->change = 0;
-}
-
 /* scheduler */
 static void schedule()
 {
@@ -182,11 +160,11 @@ static void schedule()
 	//   i.e. RR, PSJF or MLFQ
 	if(SCHED == 1){
 		//run RR
-		sched_RR();
+		//sched_RR();
 	}
 	else if(SCHED == 2){
 		//run PSJF
-		sched_PSJF();
+		//sched_PSJF();
 	}
 	else{
 		//perform FIFO?
@@ -199,10 +177,10 @@ static void schedule()
 /* Round Robin scheduling algorithm */
 static void sched_RR()
 {
-	// YOUR CODE HERE
-	
-	// Your own implementation of RR
-	// (feel free to modify arguments and return types)
+	//ignore alarm during scheduling
+    signal(SIGALRM, SIG_IGN);
+
+
 	
 	return;
 }
@@ -210,10 +188,12 @@ static void sched_RR()
 /* Preemptive PSJF (STCF) scheduling algorithm */
 static void sched_PSJF()
 {
-	// YOUR CODE HERE
+	//ignore alarm during scheduling
+    signal(SIGALRM, SIG_IGN);
 
-	// Your own implementation of PSJF (STCF)
-	// (feel free to modify arguments and return types)
+	tcb* prevTCB = currTCB;
+
+	if((currTCB))
 
 	return;
 }
@@ -232,3 +212,136 @@ static void sched_MLFQ() {
 // Feel free to add any other functions you need
 
 // YOUR CODE HERE
+
+/*
+inserts thread into queue 
+(for PSJF: makes into priority queue)
+(for RR: just inserts at the end)
+*/
+void enqueue(tcb* thread, queue** argQ){
+	int thisQuantum = thread->elapsedQuantums;
+	//queue is null
+	if(argQ == NULL){
+		return;
+	}
+	
+	//thread to insert
+	queue* newThread = malloc(sizeof(queue));
+	newThread->TCB = thread;
+	newThread->next = NULL;
+	newThread->prev = NULL;
+
+	//reference to head
+	queue *head = *argQ;
+	
+	//queue is empty
+	if(head == NULL){
+		*argQ = newThread;
+		return;
+	}
+	//if the thread is less than the lowest quantum thread (the head of queue)
+	else if(head->TCB->elapsedQuantums > thisQuantum && SCHED == 2){
+		newThread->next = head;
+		head->prev = newThread;
+		*argQ = newThread;
+		return;
+	}
+
+	queue* ptr = head;
+	queue* ptr2 = head->next;
+	//for RR
+	if (SCHED == 1){
+		while (ptr2 != NULL){
+			ptr = ptr2;
+			ptr2 = ptr2->next;
+		}
+	}
+	//for PSJF
+	else{
+		//find the next thread that is grater than this thread's quantum
+		while(ptr2 != NULL && ptr2->TCB->elapsedQuantums <= thisQuantum){
+			ptr = ptr2;
+			ptr2 = ptr2->next;
+		}
+	}
+	newThread = ptr2;
+	if(ptr2 != NULL){
+		ptr2->prev = newThread;
+	}
+	ptr->next = newThread;
+	newThread->prev = ptr;	
+
+}
+
+//returns NULL if queue is empty
+tcb* dequeue(queue** argQ){
+
+	//reference to the head of the queue
+	queue* temp = *argQ;
+	
+	//queue is empty
+	if(temp == NULL){
+		return NULL;
+	}
+
+	//the TCB we are returning
+	tcb* returnTCB = NULL;
+
+	// only dequeues the next thread with status READY
+	for (queue* ptr = *argQ; ptr != NULL; ptr = ptr->next){
+		if(ptr->TCB->status == READY){
+			//if at the front of the queue
+			if (ptr == temp){
+				returnTCB = ptr->TCB;
+				*argQ = ptr->next;
+				ptr->next = NULL;
+				free(ptr);
+				break;
+			}
+			//if in the middle of the queue
+			else if (ptr->next != NULL){
+				returnTCB = ptr->TCB;
+				ptr->prev->next = ptr->next;
+				ptr->next->prev = ptr->prev;
+				ptr->next = NULL;
+				ptr->prev = NULL;
+				free(ptr);
+				break;
+			}
+			//if at the end of the queue
+			else{
+				returnRCB = ptr->TCB;
+				ptr->prev->next = NULL;
+				ptr->prev = NULL;
+				free(ptr);
+				break;
+			}
+		}
+	}
+	return returnTCB;
+}
+
+//initialize timer
+void timer_init(struct sigaction timer, struct itimerval interval){
+
+    memset(&timer, 0, sizeof(timer));
+
+	//timer calls schedule when it goes off, no need for sighandler or scheduler context
+    timer.sa_handler = &schedule;
+    
+
+    if(sigaction(SIGALRM, &timer, NULL) < 0){//use SIGPROF/ITIMER_PROF?
+        //signal handler/sigaction failed?
+        perror("SIGACTION failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    //initial timer expiration at QUANTUM
+    interval.it_value.tv_sec = 0;
+    interval.it_value.tv_usec = QUANTUM;
+
+    //set interval to QUANTUM
+    it_val.it_interval = it_val.it_value;
+    //start timer
+    setitimer(ITIMER_REAL, &interval, NULL);
+}

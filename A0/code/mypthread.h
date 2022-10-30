@@ -15,16 +15,24 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ucontext.h>
+#include <signal.h>
+#include <time.h>
+#include <string.h>
 
 #define STACK_SIZE 5000
 #define NUM_OF_QUEUES 5
+#define QUANTUM 10000
 //thread status
 #define READY 1
 #define BLOCKED 2
 #define RUNNING 3
+#define WAITING 4
+#define FINISHED 5
+#define REMOVE 6
 
 typedef uint mypthread_t;
 
@@ -32,15 +40,16 @@ typedef uint mypthread_t;
 typedef struct threadControlBlock
 {
 	mypthread_t id;
-	//Thread status
-	int status;
-	ucontext_t context;
-	//priorty for scheduler to choose which thread to select next
-	int priority;
-	//points to threads that were created by this thread
-	struct threadControlBlock* next;
-	//points to thread that created this thread
-	mypthread_t* address;
+	mypthread_t waitingThread; //thread that it is waiting to finish
+	int status; //Thread status
+	ucontext_t context;	//priorty for scheduler to choose which thread to select next
+	int priority; //points to threads that were created by this thread
+	struct threadControlBlock* next; //points to thread that created this thread
+
+	int elapsedQuantums; //number of quantums that thread already run
+	void** valPtr; //original arg
+	void* returnVal; //returned at termination of thread
+
 
 } tcb;
 
@@ -56,24 +65,15 @@ typedef struct mypthread_mutex_t
 
 
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
-typedef struct queue{
-
-	tcb* head;
-	tcb* tail;
+typedef struct threadQueue{
+	
+	tcb* TCB;
+	struct threadQueue* next;
+	struct threadQueue* prev;
 
 } queue;
 
-typedef struct scheduler{
 
-	//different queues based off priority
-	queue* Queues;
-	tcb* currentThread;
-	//if the thread is blocked, or yielded then switch thread
-	int change;
-
-} scheduler;
-
-scheduler* myScheduler;
 /* Function Declarations: */
 
 /* create a new thread */
@@ -99,6 +99,9 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex);
 
 /* destroy a mutex */
 int mypthread_mutex_destroy(mypthread_mutex_t *mutex);
+
+static void schedule_init();
+void timer_init(struct sigaction timer, struct itimerval interval);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t
