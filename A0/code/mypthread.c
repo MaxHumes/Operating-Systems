@@ -13,8 +13,10 @@
 
 static mypthread_t currThread;
 static tcb* currTCB;
+static tcb* prevTCB;
 static struct sigaction timer;
 static struct itimerval interval;
+queue* mainQueue = NULL;
 
 int threadID = 0;
 
@@ -44,10 +46,12 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 
 	// create a Thread Control Block
 	tcb* thisTCB = malloc(sizeof(*thisTCB));
-	//thisTCB->id = thread;
+	thisTCB->id = threadID;
 	thisTCB->next = NULL;
 	thisTCB->priority = 0;
 	thisTCB->status = READY;
+
+	threadID++;
 
 	//initialize context
 	thisTCB->context.uc_link = NULL;
@@ -55,9 +59,10 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 	thisTCB->context.uc_stack.ss_sp = malloc(STACK_SIZE);
 	thisTCB->context.uc_stack.ss_size = STACK_SIZE;
 	thisTCB->context.uc_stack.ss_flags = 0;
+	makecontext(&(thisTCB->context), (void*) function, 1, arg);
 
 	// after everything is all set, push this thread into the ready queue
-	//enqueue(thisTCB, &(myScheduler->Queues[thisTCB->priority]));
+	enqueue(thisTCB, &mainQueue);
 	
 	return 0;
 };
@@ -70,6 +75,9 @@ int mypthread_yield()
 	// change current thread's state from Running to Ready
 	// save context of this thread to its thread control block
 	// switch from this thread's context to the scheduler's context
+	currTCB->status = READY;
+	swapcontext(&(prevTCB->context),&(currTCB->context));
+	schedule();
 
 	return 0;
 };
@@ -160,11 +168,11 @@ static void schedule()
 	//   i.e. RR, PSJF or MLFQ
 	if(SCHED == 1){
 		//run RR
-		//sched_RR();
+		sched_RR();
 	}
 	else if(SCHED == 2){
 		//run PSJF
-		//sched_PSJF();
+		sched_PSJF();
 	}
 	else{
 		//perform FIFO?
@@ -180,8 +188,20 @@ static void sched_RR()
 	//ignore alarm during scheduling
     signal(SIGALRM, SIG_IGN);
 
+	prevTCB = currTCB;
 
+	currTCB = dequeue(&mainQueue);
+	//if queue is empty
+	if(currTCB == NULL){
+		currTCB = prevTCB
+	}
 	
+	//restart timer
+	timer_init(timer, interval);
+
+	//switch context
+	mypthread_yield();
+
 	return;
 }
 
@@ -191,9 +211,20 @@ static void sched_PSJF()
 	//ignore alarm during scheduling
     signal(SIGALRM, SIG_IGN);
 
-	tcb* prevTCB = currTCB;
+	prevTCB = currTCB;
 
-	if((currTCB))
+	currTCB = dequeue(&mainQueue);
+	//if queue is empty
+	if(currTCB == NULL){
+		currTCB = prevTCB
+	}
+	prevTCB->elapsedQuantums++;
+
+	//restart timer
+	timer_init(timer, interval);
+
+	//switch context
+	mypthread_yield();
 
 	return;
 }
@@ -310,7 +341,7 @@ tcb* dequeue(queue** argQ){
 			}
 			//if at the end of the queue
 			else{
-				returnRCB = ptr->TCB;
+				returnTCB = ptr->TCB;
 				ptr->prev->next = NULL;
 				ptr->prev = NULL;
 				free(ptr);
@@ -340,7 +371,7 @@ void timer_init(struct sigaction timer, struct itimerval interval){
     interval.it_value.tv_usec = QUANTUM;
 
     //set interval to QUANTUM
-    it_val.it_interval = it_val.it_value;
+    interval.it_interval = interval.it_value;
     //start timer
     setitimer(ITIMER_REAL, &interval, NULL);
 }

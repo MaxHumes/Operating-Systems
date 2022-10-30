@@ -28,7 +28,7 @@
 #define QUANTUM 10000
 //thread status
 #define READY 1
-#define BLOCKED 2
+#define YIELDED 2
 #define RUNNING 3
 #define WAITING 4
 #define FINISHED 5
@@ -65,6 +65,7 @@ typedef struct mypthread_mutex_t
 
 
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
+//linked list used for queue
 typedef struct threadQueue{
 	
 	tcb* TCB;
@@ -100,8 +101,11 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex);
 /* destroy a mutex */
 int mypthread_mutex_destroy(mypthread_mutex_t *mutex);
 
-static void schedule_init();
 void timer_init(struct sigaction timer, struct itimerval interval);
+static void sched_RR();
+static void sched_PSJF();
+void enqueue(tcb* thread, queue** argQ);
+tcb* dequeue(queue** argQ);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t
