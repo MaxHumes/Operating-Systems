@@ -18,7 +18,9 @@ int firstThread = 1;
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
-	
+	//initialize schedule
+	schedule_init();
+
 	// create a Thread Control Block
 	tcb* thisTCB = malloc(sizeof(*thisTCB));
 	thisTCB->id = thread;
@@ -35,9 +37,8 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 	thisTCB->context.uc_stack.ss_flags = 0;
 
 	// after everything is all set, push this thread into the ready queue
-
+	enqueue(thisTCB, &(myScheduler->Queues[thisTCB->priority]));
 	
-
 	return 0;
 };
 
@@ -151,6 +152,24 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex)
 
 	return 0;
 };
+
+//initialize the scheduler
+static void schedule_init(){
+	
+	//allocate memory for scheduler and queues
+	myScheduler = malloc(sizeof(scheduler));
+	myScheduler->Queues = malloc(NUM_OF_QUEUES * sizeof(queue));
+
+	//initialize the queues
+	for (int i = 0; i < NUM_OF_QUEUES; i++){
+		myScheduler->Queues[i].head = NULL;
+		myScheduler->Queues[i].tail = NULL;
+	}
+
+	//initialize scheduler variables
+	myScheduler->currentThread = NULL;
+	myScheduler->change = 0;
+}
 
 /* scheduler */
 static void schedule()

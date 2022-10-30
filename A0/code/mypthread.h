@@ -20,6 +20,7 @@
 #include <ucontext.h>
 
 #define STACK_SIZE 5000
+#define NUM_OF_QUEUES 5
 //thread status
 #define READY 1
 #define BLOCKED 2
@@ -64,7 +65,8 @@ typedef struct queue{
 
 typedef struct scheduler{
 
-	queue* Queue;
+	//different queues based off priority
+	queue* Queues;
 	tcb* currentThread;
 	//if the thread is blocked, or yielded then switch thread
 	int change;
