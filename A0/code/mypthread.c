@@ -3,6 +3,7 @@
 // List all group members' names:
 // iLab machine tested on:
 
+#include <stdatomic.h>
 #include "mypthread.h"
 
 // INITAILIZE ALL YOUR VARIABLES HERE
@@ -118,23 +119,35 @@ int mypthread_join(mypthread_t thread, void **value_ptr)
 /* initialize the mutex lock */
 int mypthread_mutex_init(mypthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr)
 {
-	// YOUR CODE HERE
-	
+	// YOUR CODE HERE	
 	//initialize data structures for this mutex
 
+	mutex->lock = UNLOCKED;
 	return 0;
 };
 
 /* aquire a mutex lock */
 int mypthread_mutex_lock(mypthread_mutex_t *mutex)
 {
-		// YOUR CODE HERE
+	// YOUR CODE HERE
 	
-		// use the built-in test-and-set atomic function to test the mutex
-		// if the mutex is acquired successfully, return
-		// if acquiring mutex fails, put the current thread on the blocked/waiting list and context switch to the scheduler thread
-		
-		return 0;
+	// use the built-in test-and-set atomic function to test the mutex
+	// if the mutex is acquired successfully, return
+	// if acquiring mutex fails, put the current thread on the blocked/waiting list and context switch to the scheduler thread
+	
+	//atomically test lock status
+	if(atomic_flag_test_and_set(&(mutex->lock)) == LOCKED)
+	{
+		//have thread wait for lock
+		if(mypthread_yield() != 0)
+		{
+			//thread error
+			printf("Could not obtain lock: thread error\n");
+			return 1;
+		}
+	}
+	//lock acquired
+	return 0;
 };
 
 /* release the mutex lock */
