@@ -20,6 +20,8 @@ queue* mainQueue = NULL;
 
 int threadID = 0;
 
+static void schedule();
+
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
@@ -193,7 +195,7 @@ static void sched_RR()
 	currTCB = dequeue(&mainQueue);
 	//if queue is empty
 	if(currTCB == NULL){
-		currTCB = prevTCB
+		currTCB = prevTCB;
 	}
 	
 	//restart timer
@@ -216,7 +218,7 @@ static void sched_PSJF()
 	currTCB = dequeue(&mainQueue);
 	//if queue is empty
 	if(currTCB == NULL){
-		currTCB = prevTCB
+		currTCB = prevTCB;
 	}
 	prevTCB->elapsedQuantums++;
 
