@@ -23,7 +23,7 @@
 #include <time.h>
 #include <string.h>
 
-#define STACK_SIZE 5000
+#define STACK_SIZE 32000
 #define NUM_OF_QUEUES 5
 #define QUANTUM 10000
 //thread status
@@ -43,9 +43,7 @@ typedef struct threadControlBlock
 	mypthread_t waitingThread; //thread that it is waiting to finish
 	int status; //Thread status
 	ucontext_t context;	//priorty for scheduler to choose which thread to select next
-	int priority; //points to threads that were created by this thread
-	struct threadControlBlock* next; //points to thread that created this thread
-
+	
 	int elapsedQuantums; //number of quantums that thread already run
 	void** valPtr; //original arg
 	void* returnVal; //returned at termination of thread
@@ -102,10 +100,17 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex);
 int mypthread_mutex_destroy(mypthread_mutex_t *mutex);
 
 void timer_init(struct sigaction timer, struct itimerval interval);
+static void schedule();
 static void sched_RR();
 static void sched_PSJF();
 void enqueue(tcb* thread, queue** argQ);
 tcb* dequeue(queue** argQ);
+tcb* getTCB(queue** argQ, mypthread_t thread);
+void readyThreads(queue** argQ, mypthread_t thread);
+void freeTCBQueue(void);
+void freeThread(queue* argQ);
+int isFinished(queue** argQ, mypthread_t thread);
+int removeThread(queue** argQ, mypthread_t thread);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t
