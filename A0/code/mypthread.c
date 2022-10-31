@@ -3,6 +3,7 @@
 // List all group members' names:
 // iLab machine tested on:
 
+#include <stdatomic.h>
 #include "mypthread.h"
 
 // INITAILIZE ALL YOUR VARIABLES HERE
@@ -18,6 +19,8 @@ static struct itimerval interval;
 queue* mainQueue = NULL;
 
 int threadID = 0;
+
+static void schedule();
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
@@ -149,23 +152,40 @@ int mypthread_join(mypthread_t thread, void **value_ptr)
 /* initialize the mutex lock */
 int mypthread_mutex_init(mypthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr)
 {
-	// YOUR CODE HERE
-	
+	// YOUR CODE HERE	
 	//initialize data structures for this mutex
 
+	mutex->lock = UNLOCKED;
 	return 0;
 };
 
 /* aquire a mutex lock */
 int mypthread_mutex_lock(mypthread_mutex_t *mutex)
 {
-		// YOUR CODE HERE
+	// YOUR CODE HERE
 	
-		// use the built-in test-and-set atomic function to test the mutex
-		// if the mutex is acquired successfully, return
-		// if acquiring mutex fails, put the current thread on the blocked/waiting list and context switch to the scheduler thread
+	// use the built-in test-and-set atomic function to test the mutex
+	// if the mutex is acquired successfully, return
+	// if acquiring mutex fails, put the current thread on the blocked/waiting list and context switch to the scheduler thread
+	
+	//atomically test lock status
+	while(atomic_flag_test_and_set(&(mutex->lock)) == LOCKED)
+	{
+		currTCB->status = BLOCKED;
+		//add to blocked queue
+		//context switch		
 		
-		return 0;
+		
+		//have thread wait for lock
+		if(mypthread_yield() != 0)
+		{
+			//thread error
+			printf("Could not obtain lock: thread error\n");
+			return 1;
+		}
+	}
+	//lock acquired
+	return 0;
 };
 
 /* release the mutex lock */
@@ -175,7 +195,7 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex)
 	
 	// update the mutex's metadata to indicate it is unlocked
 	// put the thread at the front of this mutex's blocked/waiting queue in to the run queue
-
+	mutex->lock = UNLOCKED;
 	return 0;
 };
 

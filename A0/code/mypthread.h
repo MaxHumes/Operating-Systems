@@ -33,6 +33,10 @@
 #define WAITING 4
 #define FINISHED 5
 #define REMOVE 6
+#define BLOCKED 7
+//lock status
+#define UNLOCKED 0
+#define LOCKED 1
 
 typedef uint mypthread_t;
 
@@ -56,9 +60,9 @@ typedef struct threadControlBlock
 /* mutex struct definition */
 typedef struct mypthread_mutex_t
 {
-
 	// YOUR CODE HERE
-	
+	int lock;
+	queue blockedQueue;
 } mypthread_mutex_t;
 
 
