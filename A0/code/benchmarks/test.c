@@ -21,18 +21,28 @@
 #define INTERVAL 5000
 
 static struct itimerval interval;
+int counter;
 
 //initialize timer
 void* DoStuff() {
-
-  printf("Test.\n");
-
+	printf("starting thread\n");
+	for(int i = 0; i < 10000; i++)
+	{
+		counter++;
+	}
 }
 
 void testScheduler()
 {
-	mypthread_t t1;
+	mypthread_t t1, t2;
 	mypthread_create(&t1, NULL, &DoStuff, NULL);	
+	printf("thread created\n");
+	mypthread_join(t1, NULL);
+	printf("thread joined");
+	//mypthread_create(&t2, NULL, &DoStuff, NULL);
+	//mypthread_join(t2, NULL);
+	printf("Counter Value: %d", counter);
+	
 	printf("thread created\n");
 }
 
