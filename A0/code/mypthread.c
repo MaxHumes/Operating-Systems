@@ -136,8 +136,13 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex)
 	// if acquiring mutex fails, put the current thread on the blocked/waiting list and context switch to the scheduler thread
 	
 	//atomically test lock status
-	if(atomic_flag_test_and_set(&(mutex->lock)) == LOCKED)
+	while(atomic_flag_test_and_set(&(mutex->lock)) == LOCKED)
 	{
+		currTCB->status = BLOCKED;
+		//add to blocked queue
+		//context switch		
+		
+		
 		//have thread wait for lock
 		if(mypthread_yield() != 0)
 		{
@@ -157,7 +162,7 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex)
 	
 	// update the mutex's metadata to indicate it is unlocked
 	// put the thread at the front of this mutex's blocked/waiting queue in to the run queue
-
+	mutex->lock = UNLOCKED;
 	return 0;
 };
 
