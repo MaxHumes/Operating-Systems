@@ -370,7 +370,7 @@ inserts thread into queue
 */
 void enqueue(tcb* thread, queue** argQ){
     printf("\nENQUEING THREAD\n");
-    printThreadQueue(argQ);
+    // printThreadQueue(argQ);
 	int thisQuantum = thread->elapsedQuantums;
 	//queue is null
 	if(argQ == NULL){
@@ -390,7 +390,7 @@ void enqueue(tcb* thread, queue** argQ){
 	if(head == NULL){
 		*argQ = newThread;
 		printf("\nFINISHED ENQUEING THREAD\n");
-		printThreadQueue(argQ);
+		// printThreadQueue(argQ);
 		return;
 	}
 	//if the thread is less than the lowest quantum thread (the head of queue)
@@ -399,7 +399,7 @@ void enqueue(tcb* thread, queue** argQ){
 		head->prev = newThread;
 		*argQ = newThread;
 		printf("\nFINISHED ENQUEING THREAD\n");
-		printThreadQueue(argQ);
+		// printThreadQueue(argQ);
 		return;
 	}
 
@@ -428,13 +428,13 @@ void enqueue(tcb* thread, queue** argQ){
 	newThread->prev = ptr;	
 
     printf("\nFINISHED ENQUEING THREAD\n");
-	printThreadQueue(argQ);
+	// printThreadQueue(argQ);
 }
 
 //returns NULL if queue is empty
 tcb* dequeue(queue** argQ){
     printf("\nDEQUEING THREAD\n");
-	printThreadQueue(argQ);
+	// printThreadQueue(argQ);
 	//reference to the head of the queue
 	queue* temp = *argQ;
 
@@ -478,7 +478,7 @@ tcb* dequeue(queue** argQ){
 		}
 	}
     printf("\nFINISHED DEQUEING THREAD\n");
-	printThreadQueue(argQ);
+	// printThreadQueue(argQ);
 	return returnTCB;
 }
 

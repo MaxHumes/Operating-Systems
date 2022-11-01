@@ -47,7 +47,6 @@ void testScheduler()
 	// pthread_join(t2, NULL);
 	printf("Counter Value: %d", counter);
 
-	
 }
 
 int main(int argc, char **argv) {
