@@ -10,7 +10,7 @@
 // YOUR CODE HERE
 
 //used to define the type of scheduler to use (0 = FIFO, 1 = RR, 2 = SJF)
-#define SCHED 2
+#define SCHED 1
 
 static mypthread_t currThread;
 static tcb* currTCB;
@@ -218,10 +218,10 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex)
 };
 
 /* scheduler */
-static void schedule()
+void schedule()
 {
 	// YOUR CODE HERE
-	
+	printf("called schedule()");	
 	// each time a timer signal occurs your library should switch in to this context
 	
 	// be sure to check the SCHED definition to determine which scheduling algorithm you should run
@@ -242,8 +242,9 @@ static void schedule()
 /* Round Robin scheduling algorithm */
 static void sched_RR()
 {
+	printf("called sched_RR");
 	//ignore alarm during scheduling
-    signal(SIGALRM, SIG_IGN);
+    	//signal(SIGALRM, SIG_IGN);
 
 	tcb* prevTCB = currTCB;
 
@@ -467,7 +468,9 @@ void timer_init(struct sigaction timer, struct itimerval interval){
 
 	//timer calls schedule when it goes off, no need for sighandler or scheduler context
     timer.sa_handler = &schedule;
-    
+    sigset_t maskSet;
+    sigaddset(&maskSet, SIGALRM);
+    timer.sa_mask = maskSet;
 
     if(sigaction(SIGALRM, &timer, NULL) < 0){
         perror("SIGACTION failed\n");
