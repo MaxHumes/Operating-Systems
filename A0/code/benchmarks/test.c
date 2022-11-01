@@ -53,16 +53,16 @@ void testScheduler()
 int main(int argc, char **argv) {
 
 	/* Implement HERE */
-	//testScheduler();
+	testScheduler();
 	
 	//Code to test timer init
-	/*
-	timer_init();
-	for( ; ; )
-	{
-		pause();
-	}
-	return 0;
-	*/
+	
+	// timer_init(timer, interval);
+	// for( ; ; )
+	// {
+	// 	pause();
+	// }
+	// return 0;
+	
 }
 
