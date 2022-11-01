@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <time.h>
 #include <string.h>
+#include <pthread.h>
 #include "../mypthread.h"
 #include "../mypthread.c"
 
@@ -22,6 +23,7 @@
 
 static struct itimerval interval;
 int counter;
+queue* Queue = NULL;
 
 //initialize timer
 void* DoStuff() {
@@ -30,20 +32,22 @@ void* DoStuff() {
 	{
 		counter++;
 	}
+	printf("done");
 }
 
 void testScheduler()
 {
-	mypthread_t t1, t2;
-	mypthread_create(&t1, NULL, &DoStuff, NULL);	
+	pthread_t t1, *t2;
+	// t1 = malloc(sizeof(mypthread_t));
+	pthread_create(&t1, NULL, &DoStuff, NULL);	
 	printf("thread created\n");
-	mypthread_join(t1, NULL);
+	pthread_join(t1, NULL);
 	printf("thread joined");
-	//mypthread_create(&t2, NULL, &DoStuff, NULL);
-	//mypthread_join(t2, NULL);
+	// pthread_create(&t2, NULL, &DoStuff, NULL);
+	// pthread_join(t2, NULL);
 	printf("Counter Value: %d", counter);
+
 	
-	printf("thread created\n");
 }
 
 int main(int argc, char **argv) {
