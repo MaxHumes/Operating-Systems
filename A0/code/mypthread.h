@@ -38,6 +38,13 @@
 #define UNLOCKED 0
 #define LOCKED 1
 
+//used to define the type of scheduler to use (1 = RR, 2 = SJF)
+#ifdef PSJF
+#define SCHED 2
+#else
+#define SCHED 1
+#endif
+
 typedef uint mypthread_t;
 
 	/* add important states in a thread control block */
@@ -49,7 +56,7 @@ typedef struct threadControlBlock
 	ucontext_t context;	//priorty for scheduler to choose which thread to select next
 	
 	int elapsedQuantums; //number of quantums that thread already run
-	void** valPtr; //original arg
+	void** valPtr; //original address
 	void* returnVal; //returned at termination of thread
 
 
@@ -74,6 +81,7 @@ typedef struct mypthread_mutex_t
 } mypthread_mutex_t;
 
 /* Function Declarations: */
+void test();
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg);

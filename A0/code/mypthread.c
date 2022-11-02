@@ -3,18 +3,13 @@
 // List all group members' names:
 // iLab machine tested on:
 
-#include <stdatomic.h>
+	#include <stdatomic.h>
 #include "mypthread.h"
 
 // INITAILIZE ALL YOUR VARIABLES HERE
 // YOUR CODE HERE
 
-//used to define the type of scheduler to use (0 = FIFO, 1 = RR, 2 = SJF)
-#ifdef PSJF
-	#define SCHED 2
-#else
-	#define SCHED 1
-#endif
+
 
 static mypthread_t currThread;
 static tcb* currTCB;
@@ -29,7 +24,7 @@ static void schedule();
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
-    printf("\nIN PTHREAD CREATE\n");
+	printf("\nIN PTHREAD CREATE\n");
 
 	if(threadID == 0){
 		currThread = threadID;
@@ -75,9 +70,9 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
     
 	
     if(getcontext(&(newTCB->context)) == -1){
-			perror("Initializing context failed");
-			exit(EXIT_FAILURE);
-		}
+		perror("Initializing context failed");
+		exit(EXIT_FAILURE);
+	}
 	//initialize context
 	newTCB->context.uc_link = &currTCB->context;
 	//allocate heap space for the thread's stack
@@ -249,12 +244,11 @@ void schedule()
 	
 	// be sure to check the SCHED definition to determine which scheduling algorithm you should run
 	//   i.e. RR, PSJF or MLFQ
-	if(SCHED == 1){
+	if (SCHED == 1){
 		//run RR
 		sched_RR();
 	}
-	else if(SCHED == 2){
-		//run PSJF
+	else if (SCHED == 2){
 		sched_PSJF();
 	}
 
