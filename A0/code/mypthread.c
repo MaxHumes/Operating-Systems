@@ -193,19 +193,12 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex)
 	
 	//atomically test lock status
 	while(atomic_flag_test_and_set(&(mutex->lock)) == LOCKED)
-	{
+	{		
 		currTCB->status = BLOCKED;
-		//add to blocked queue
-		//context switch		
-		
-		
-		//have thread wait for lock
-		if(mypthread_yield() != 0)
-		{
-			//thread error
-			printf("Could not obtain lock: thread error\n");
-			return 1;
-		}
+		//add to mutex blocked queue
+		enqueue(currTCB, &(mutex->blockedQueue));			
+		//remove thread from main queue
+		removeThread(&mainQueue, currTCB->id);
 	}
 	//lock acquired
 	return 0;
@@ -220,8 +213,17 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex)
 	// update the mutex's metadata to indicate it is unlocked
 	// put the thread at the front of this mutex's blocked/waiting queue in to the run queue
 	mutex->lock = UNLOCKED;
+	
+	queue* next = mutex->blockedQueue;
+	//if blocked threads are waiting, ready first in queue
+	if(next != NULL)
+	{
+		next->TCB->status = READY;	
+		enqueue(next->TCB, &mainQueue);
+		dequeue(&(mutex->blockedQueue));
+	}
+	
 	return 0;
-
 };
 
 
@@ -231,7 +233,6 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex)
 	// YOUR CODE HERE
 	
 	// deallocate dynamic memory allocated during mypthread_mutex_init
-
 	return 0;
 };
 

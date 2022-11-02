@@ -22,14 +22,17 @@
 
 static struct itimerval interval;
 int counter;
+pthread_mutex_t mutex;
 queue* Queue = NULL;
 
 //initialize timer
 void* DoStuff() {
 	printf("starting thread\n");
-	for(int i = 0; i < 10000; i++)
+	for(int i = 0; i < 1000000; i++)
 	{
+		pthread_mutex_lock(&mutex);
 		counter++;
+		pthread_mutex_unlock(&mutex);
 	}
 	printf("done");
 }
@@ -38,15 +41,17 @@ void testScheduler()
 {
 	pthread_t t1, t2;
 	// t1 = malloc(sizeof(mypthread_t));
+	pthread_mutex_init(&mutex, NULL);
 	pthread_create(&t1, NULL, &DoStuff, NULL);
 	pthread_create(&t2, NULL, &DoStuff, NULL);	
-	printf("thread created\n");
+	printf("threads created\n");
 	pthread_join(t1, NULL);
 	pthread_join(t2, NULL);
-	printf("thread joined");
+	printf("threads joined\n");
+	pthread_mutex_destroy(&mutex);
 
 
-	printf("Counter Value: %d", counter);
+	printf("Counter Value: %d\n", counter);
 
 }
 
