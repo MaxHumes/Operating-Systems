@@ -37,14 +37,16 @@ void* DoStuff() {
 
 void testScheduler()
 {
-	pthread_t t1, *t2;
+	pthread_t t1, t2;
 	// t1 = malloc(sizeof(mypthread_t));
-	pthread_create(&t1, NULL, &DoStuff, NULL);	
+	pthread_create(&t1, NULL, &DoStuff, NULL);
+	pthread_create(&t2, NULL, &DoStuff, NULL);	
 	printf("thread created\n");
 	pthread_join(t1, NULL);
+	pthread_join(t2, NULL);
 	printf("thread joined");
-	// pthread_create(&t2, NULL, &DoStuff, NULL);
-	// pthread_join(t2, NULL);
+
+
 	printf("Counter Value: %d", counter);
 
 }

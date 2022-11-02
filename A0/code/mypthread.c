@@ -10,7 +10,11 @@
 // YOUR CODE HERE
 
 //used to define the type of scheduler to use (0 = FIFO, 1 = RR, 2 = SJF)
-#define SCHED 1
+#ifdef PSJF
+	#define SCHED 2
+#else
+	#define SCHED 1
+#endif
 
 static mypthread_t currThread;
 static tcb* currTCB;
@@ -26,6 +30,7 @@ static void schedule();
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
     printf("\nIN PTHREAD CREATE\n");
+
 	if(threadID == 0){
 		currThread = threadID;
 		tcb* mainTCB = malloc(sizeof(tcb));
@@ -47,13 +52,13 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 			perror("Initializing context failed");
 			exit(EXIT_FAILURE);
 		}
-		//initialize context
-		currTCB->context.uc_link = NULL;
-		//allocate heap space for the thread's stack
-		currTCB->context.uc_stack.ss_sp = malloc(STACK_SIZE);
-		currTCB->context.uc_stack.ss_size = STACK_SIZE;
-		currTCB->context.uc_stack.ss_flags = 0;
-		makecontext(&(currTCB->context), (void*) function, 1, arg);
+		// //initialize context
+		// currTCB->context.uc_link = NULL;
+		// //allocate heap space for the thread's stack
+		// currTCB->context.uc_stack.ss_sp = malloc(STACK_SIZE);
+		// currTCB->context.uc_stack.ss_size = STACK_SIZE;
+		// currTCB->context.uc_stack.ss_flags = 0;
+		// makecontext(&(currTCB->context), (void*) function, 1, arg);
 	}
 
 	// create a Thread Control Block
@@ -74,7 +79,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 			exit(EXIT_FAILURE);
 		}
 	//initialize context
-	newTCB->context.uc_link = NULL;
+	newTCB->context.uc_link = &currTCB->context;
 	//allocate heap space for the thread's stack
 	newTCB->context.uc_stack.ss_sp = malloc(STACK_SIZE);
 	if(newTCB->context.uc_stack.ss_sp <= 0){
@@ -275,16 +280,19 @@ static void sched_RR()
 	enqueue(prevTCB, &mainQueue);
 	//restart timer
 	timer_init(timer, interval);
-	printf("before");
+	printf("before\n");
 	//switch context
-	swapcontext(&(prevTCB->context), &(currTCB->context));
-
+	if(swapcontext(&(prevTCB->context),&(currTCB->context)) == -1){
+		printf("swapcontext error\n");
+	}
+	printf("\nSCHEDULE END\n");
 	return;
 }
 
 /* Preemptive PSJF (STCF) scheduling algorithm */
 static void sched_PSJF()
 {
+	printf("called sched_PSJF");
     printf("\nIN SCHEDULE\n");
 
 	//ignore alarm during scheduling
