@@ -70,7 +70,7 @@ typedef struct mypthread_mutex_t
 {
 	// YOUR CODE HERE
 	int lock;
-	queue blockedQueue;
+	queue* blockedQueue;
 } mypthread_mutex_t;
 
 /* Function Declarations: */
