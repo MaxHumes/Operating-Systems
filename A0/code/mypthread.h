@@ -1,7 +1,7 @@
 // File:	mypthread_t.h
 
-// List all group members' names: Lorenzo Ladao
-// iLab machine tested on: ilab2
+// List all group members' names: Lorenzo Ladao, Max Humes
+// iLab machine tested on: ilab2, mxh5
 
 #ifndef MYTHREAD_T_H
 #define MYTHREAD_T_H
@@ -111,7 +111,7 @@ static void schedule();
 static void sched_RR();
 static void sched_PSJF();
 void enqueue(tcb* thread, queue** argQ);
-tcb* dequeue(queue** argQ);
+tcb* dequeue(queue** argQ, int status);
 tcb* getTCB(queue** argQ, mypthread_t thread);
 void readyThreads(queue** argQ, mypthread_t thread);
 void freeTCBQueue(void);
