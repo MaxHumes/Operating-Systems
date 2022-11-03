@@ -198,9 +198,9 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex)
 	
 	// update the mutex's metadata to indicate it is unlocked
 	// put the thread at the front of this mutex's blocked/waiting queue in to the run queue
-	mutex->lock = UNLOCKED;
 	
 	queue* next = mutex->blockedQueue;
+	mutex->lock = UNLOCKED;
 	//if blocked threads are waiting, ready first in queue
 	if(next != NULL)
 	{
