@@ -1,44 +1,30 @@
 // File:	mypthread.c
-
-// List all group members' names: Lorenzo Ladao, Max Humes
-// iLab machine tested on: lml253, mxh5
-
-#include <stdatomic.h>
+// List all group members' names:
+// iLab machine tested on:
+	#include <stdatomic.h>
 #include "mypthread.h"
-
 // INITAILIZE ALL YOUR VARIABLES HERE
 // YOUR CODE HERE
-
-
-
 static mypthread_t currThread;
 static tcb* currTCB;
 static struct sigaction timer;
 static struct itimerval interval;
 queue* mainQueue = NULL;
-
 static int threadID = 0;
-
 static void schedule();
-
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
 	// printf("\nIN PTHREAD CREATE\n");
-
 	if(threadID == 0){
 		currThread = threadID;
 		tcb* mainTCB = malloc(sizeof(tcb));
-
 		mainTCB->id = currThread;
 		mainTCB->waitingThread = -1;
-
 		mainTCB->status = READY;
 		mainTCB->elapsedQuantums = 0;
-
 		mainTCB->valPtr = NULL;
 		mainTCB->returnVal = NULL;
-
 		currTCB = mainTCB;
 		timer_init(timer, interval);
 		threadID++;
@@ -47,22 +33,28 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 			perror("Initializing context failed");
 			exit(EXIT_FAILURE);
 		}
+		// //initialize context
+		// currTCB->context.uc_link = NULL;
+		// //allocate heap space for the thread's stack
+		// currTCB->context.uc_stack.ss_sp = malloc(STACK_SIZE);
+		// currTCB->context.uc_stack.ss_size = STACK_SIZE;
+		// currTCB->context.uc_stack.ss_flags = 0;
+		// makecontext(&(currTCB->context), (void*) function, 1, arg);
 	}
-
 	// create a Thread Control Block
 	currThread = threadID;
 	tcb* newTCB = malloc(sizeof(tcb));
 	newTCB->id = threadID;
-    	*thread = threadID;
+    *thread = threadID;
 	newTCB->status = READY;
-    	newTCB->elapsedQuantums = 0;
-   	newTCB->waitingThread = -1;
-    	newTCB->valPtr = NULL;
-    	newTCB->returnVal = NULL;
+    newTCB->elapsedQuantums = 0;
+    newTCB->waitingThread = -1;
+    newTCB->valPtr = NULL;
+    newTCB->returnVal = NULL;
 	threadID++;
     
 	
-    	if(getcontext(&(newTCB->context)) == -1){
+    if(getcontext(&(newTCB->context)) == -1){
 		perror("Initializing context failed");
 		exit(EXIT_FAILURE);
 	}
@@ -77,15 +69,16 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 	newTCB->context.uc_stack.ss_size = STACK_SIZE;
 	newTCB->context.uc_stack.ss_flags = 0;
 	makecontext(&(newTCB->context), (void*) function, 1, arg);
-	// after everything is all set, push this thread into the ready queue
 	enqueue(newTCB, &mainQueue);
-
+	// after everything is all set, push this thread into the ready queue
+	
+	// printf("\nTHREAD CREATED\n");
 	return 0;
 };
-
 /* current thread voluntarily surrenders its remaining runtime for other threads to use */
 int mypthread_yield()
 {
+    // printf("\nIN PTHREAD YIELD\n");
 	// YOUR CODE HERE
 	
 	// change current thread's state from Running to Ready
@@ -93,82 +86,71 @@ int mypthread_yield()
 	// switch from this thread's context to the scheduler's context
 	currTCB->status = READY;
 	schedule();
-
 	return 0;
 };
-
 /* terminate a thread */
 void mypthread_exit(void *value_ptr)
 {
 	// // YOUR CODE HERE
-
 	// // preserve the return value pointer if not NULL
 	// // deallocate any dynamic memory allocated when starting this thread
 	currTCB->status = FINISHED;
-
 	//if null return value_ptr
-    	if(currTCB->valPtr == NULL){
-        	currTCB->returnVal = value_ptr;
-    	}
-    	else{
-        	*currTCB->valPtr = value_ptr;
-        	currTCB->status = REMOVE;
-        	removeThread(&mainQueue, currTCB->id);
-
-    	}
-    	readyThreads(&mainQueue, currTCB->id);
-    	schedule();
+    if(currTCB->valPtr == NULL){
+        currTCB->returnVal = value_ptr;
+    }
+    else{
+        *currTCB->valPtr = value_ptr;
+        currTCB->status = REMOVE;
+        removeThread(&mainQueue, currTCB->id);
+    }
+    readyThreads(&mainQueue, currTCB->id);
+    schedule();
 	return;
 };
-
-
 /* Wait for thread termination */
 int mypthread_join(mypthread_t thread, void **value_ptr)
 {
 	// // YOUR CODE HERE
-
 	// wait for a specific thread to terminate
 	// deallocate any dynamic memory created by the joining thread
-    	//check if thread is finished
-    	if(isFinished(&mainQueue, thread) == 1){
-        	//thread done
-        	tcb* temp = getTCB(&mainQueue, thread);
-        	if(value_ptr != NULL){
-            		temp->status = REMOVE;
-            		*value_ptr = temp->returnVal;
-
-            		tcb* ptr = temp;
-            		if(removeThread(&mainQueue, ptr->id) == -1){
-                		perror("error removeing node, aborting\n");
-                		abort();
-            		}
+    // printf("\nIN PTHREAD JOIN\n");
+    //check if thread is finished
+    if(isFinished(&mainQueue, thread) == 1){
+		// printf("isFinished");
+        //thread done
+        tcb* temp = getTCB(&mainQueue, thread);
+        if(value_ptr != NULL){
+            temp->status = REMOVE;
+            *value_ptr = temp->returnVal;
+            tcb* ptr = temp;
+            if(removeThread(&mainQueue, ptr->id) == -1){
+                perror("error removeing node, aborting\n");
+                abort();
+            }
 			mypthread_exit(value_ptr);
-        	}
-        	return 0;
-    	}
+        }
+        // printf("\nPTHREAD JOINED\n");
+        return 0;
+    }
 	//set the thread to waiting
 	currTCB->status = WAITING;
 	currTCB->waitingThread = thread;
-
-	tcb* temp = getTCB(&mainQueue, thread);
-    	temp->valPtr = value_ptr;
-    	schedule();
+    tcb* temp = getTCB(&mainQueue, thread);
+    temp->valPtr = value_ptr;
+    schedule();
+    // printf("\nPTHREAD WAITING\n");
 	return 0;
 };
-
-
 /* initialize the mutex lock */
 int mypthread_mutex_init(mypthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr)
 {
 	// YOUR CODE HERE	
 	//initialize data structures for this mutex
-
 	mutex->lock = UNLOCKED;
 	mutex->blockedQueue = NULL;
 	return 0;
-
 };
-
 /* aquire a mutex lock */
 int mypthread_mutex_lock(mypthread_mutex_t *mutex)
 {
@@ -182,15 +164,16 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex)
 	while(atomic_flag_test_and_set(&(mutex->lock)) == LOCKED)
 	{		
 		currTCB->status = BLOCKED;
-		//add mutex to blocked queue and schedule next thread
+		//add to mutex blocked queue
 		enqueue(currTCB, &(mutex->blockedQueue));			
+		//remove thread from main queue
+		// currTCB->status = REMOVE;
+		// removeThread(&mainQueue, currTCB->id);
 		schedule();
 	}
 	//lock acquired
 	return 0;
-
 };
-
 /* release the mutex lock */
 int mypthread_mutex_unlock(mypthread_mutex_t *mutex)
 {
@@ -204,29 +187,22 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex)
 	//if blocked threads are waiting, ready first in queue
 	if(next != NULL)
 	{
+		next->TCB->status = READY;	
 		updateQ(&mainQueue, next->TCB->id);
-		dequeue(&(mutex->blockedQueue), BLOCKED);
-		next->TCB->status = READY;
+		// enqueue(next->TCB, &mainQueue);
+		dequeue(&(mutex->blockedQueue));
 	}
 	
 	return 0;
 };
-
-
 /* destroy the mutex */
 int mypthread_mutex_destroy(mypthread_mutex_t *mutex)
 {
 	// YOUR CODE HERE
 	
 	// deallocate dynamic memory allocated during mypthread_mutex_init
-	for(queue* ptr = mutex->blockedQueue; ptr != NULL; ptr = ptr->next)
-	{
-		dequeue(&(mutex->blockedQueue), BLOCKED); 
-	}
-	
 	return 0;
 };
-
 /* scheduler */
 void schedule()
 {
@@ -243,20 +219,16 @@ void schedule()
 	else if (SCHED == 2){
 		sched_PSJF();
 	}
-
-
 	return;
 }
-
 /* Round Robin scheduling algorithm */
 static void sched_RR()
 {
+	// printf("called sched_RR");
 	//ignore alarm during scheduling
     	//signal(SIGALRM, SIG_IGN);
-
 	tcb* prevTCB = currTCB;
-
-	currTCB = dequeue(&mainQueue, READY);
+	currTCB = dequeue(&mainQueue);
 	//if queue is empty
 	if(currTCB == NULL){
 		currTCB = prevTCB;
@@ -270,32 +242,33 @@ static void sched_RR()
 	if(swapcontext(&(prevTCB->context),&(currTCB->context)) == -1){
 		printf("swapcontext error\n");
 	}
+	// printf("\nSCHEDULE END\n");
 	return;
 }
-
 /* Preemptive PSJF (STCF) scheduling algorithm */
 static void sched_PSJF()
 {
-
+	// printf("called sched_PSJF");
+    // printf("\nIN SCHEDULE\n");
+	//ignore alarm during scheduling
+    signal(SIGALRM, SIG_IGN);
 	tcb *prevTCB = currTCB;
-
-	currTCB = dequeue(&mainQueue, READY);
+	currTCB = dequeue(&mainQueue);
 	//if queue is empty
 	if(currTCB == NULL){
 		currTCB = prevTCB;
 		return;
 	}
 	prevTCB->elapsedQuantums++;
-    	enqueue(prevTCB, &mainQueue);
+    enqueue(prevTCB, &mainQueue);
 	//restart timer
 	timer_init(timer, interval);
-
 	//switch context
 	swapcontext(&(prevTCB->context),&(currTCB->context));
 	
-    	return;
+    // printf("\nSCHEDULE END\n");
+	return;
 }
-
 /* Preemptive MLFQ scheduling algorithm */
 /* Graduate Students Only */
 static void sched_MLFQ() {
@@ -303,12 +276,9 @@ static void sched_MLFQ() {
 	
 	// Your own implementation of MLFQ
 	// (feel free to modify arguments and return types)
-
 	return;
 }
-
 // Feel free to add any other functions you need
-
 // YOUR CODE HERE
 void printThreadQueue(queue** q){
     //have to modify this
@@ -326,12 +296,10 @@ void printThreadQueue(queue** q){
     }
     printf("THREAD QUEUE\n");
     queue* ptr = *q;
-
     if(ptr == NULL){
         printf("Queue is empty or NULL\n");
         return;
     }
-
     int count = 1;
     for(ptr; ptr != NULL; ptr = ptr->next){
     
@@ -341,10 +309,8 @@ void printThreadQueue(queue** q){
         printf("Waiting Thread: %d\n", ptr->TCB->waitingThread);
         printf("Thread Elapsed Quantums (Runtime): %d\n\n",
                  ptr->TCB->elapsedQuantums);
-
         printf("Return Value: %p\n", ptr->TCB->returnVal);
         printf("Value Pointer: %p\n", ptr->TCB->valPtr);
-
         count++;
     }
     printf("LIST DONE\n");
@@ -355,6 +321,8 @@ inserts thread into queue
 (for RR: just inserts at the end)
 */
 void enqueue(tcb* thread, queue** argQ){
+    // printf("\nENQUEING THREAD\n");
+    // printThreadQueue(argQ);
 	int thisQuantum = thread->elapsedQuantums;
 	//queue is null
 	if(argQ == NULL){
@@ -366,13 +334,14 @@ void enqueue(tcb* thread, queue** argQ){
 	newThread->TCB = thread;
 	newThread->next = NULL;
 	newThread->prev = NULL;
-
 	//reference to head
 	queue *head = *argQ;
 	
 	//queue is empty
 	if(head == NULL){
 		*argQ = newThread;
+		// printf("\nFINISHED ENQUEING THREAD\n");
+		// printThreadQueue(argQ);
 		return;
 	}
 	//if the thread is less than the lowest quantum thread (the head of queue)
@@ -380,9 +349,10 @@ void enqueue(tcb* thread, queue** argQ){
 		newThread->next = head;
 		head->prev = newThread;
 		*argQ = newThread;
+		// printf("\nFINISHED ENQUEING THREAD\n");
+		// printThreadQueue(argQ);
 		return;
 	}
-
 	queue* ptr = head;
 	queue* ptr2 = head->next;
 	//for RR
@@ -406,24 +376,24 @@ void enqueue(tcb* thread, queue** argQ){
 	}
 	ptr->next = newThread;
 	newThread->prev = ptr;	
+    // printf("\nFINISHED ENQUEING THREAD\n");
+	// printThreadQueue(argQ);
 }
-
 //returns NULL if queue is empty
-tcb* dequeue(queue** argQ, int status){
+tcb* dequeue(queue** argQ){
+    // printf("\nDEQUEING THREAD\n");
+	// printThreadQueue(argQ);
 	//reference to the head of the queue
 	queue* temp = *argQ;
-
 	//queue is empty
 	if(temp == NULL){
 		return NULL;
 	}
-
 	//the TCB we are returning
 	tcb* returnTCB = NULL;
-
 	// only dequeues the next thread with status READY
 	for (queue* ptr = *argQ; ptr != NULL; ptr = ptr->next){
-		if(ptr->TCB->status == status){
+		if(ptr->TCB->status == READY){
 			//if at the front of the queue
 			if (ptr == temp){
 				returnTCB = ptr->TCB;
@@ -456,10 +426,8 @@ tcb* dequeue(queue** argQ, int status){
 	// printThreadQueue(argQ);
 	return returnTCB;
 }
-
 //initialize timer
 void timer_init(struct sigaction timer, struct itimerval interval){
-
     memset(&timer, 0, sizeof(timer));
 
 	//timer calls schedule when it goes off, no need for sighandler or scheduler context
@@ -472,17 +440,14 @@ void timer_init(struct sigaction timer, struct itimerval interval){
         perror("SIGACTION failed\n");
         exit(EXIT_FAILURE);
     }
-
     //initial timer expiration at QUANTUM
     interval.it_value.tv_sec = 0;
     interval.it_value.tv_usec = QUANTUM;
-
     //set interval to QUANTUM
     interval.it_interval = interval.it_value;
     //start timer
     setitimer(ITIMER_REAL, &interval, NULL);
 }
-
 //returns the TCB that has the same id as the argument thread
 tcb* getTCB(queue** argQ, mypthread_t thread){
     tcb* temp = NULL;
@@ -494,7 +459,6 @@ tcb* getTCB(queue** argQ, mypthread_t thread){
     }
     return temp;
 }
-
 //changes status to all threads waiting for argument thread to READY
 void readyThreads(queue** argQ, mypthread_t thread){
     for(queue* ptr = *argQ; ptr != NULL; ptr = ptr->next){
@@ -505,11 +469,9 @@ void readyThreads(queue** argQ, mypthread_t thread){
     }
     return;
 }
-
 //frees all TCB in the queue
 void freeTCBQueue(void){
     queue* ptr = mainQueue;
-
     while(ptr != NULL){
         queue* temp = ptr;
         ptr = ptr->next;
@@ -517,26 +479,23 @@ void freeTCBQueue(void){
     }
     free(currTCB);
 }
-
 //frees given head(TCB) from Queue
 void freeThread(queue* argQ){
     free(argQ->TCB->context.uc_stack.ss_sp);
     free(argQ->TCB);
     free(argQ);
 }
-
 //checks if the argument thread has the status FINISHED
 int isFinished(queue** argQ, mypthread_t thread){
     int isFinished = 0;
     for(queue* ptr = *argQ; ptr != NULL; ptr = ptr->next){
         if(ptr->TCB->status == FINISHED && ptr->TCB->id == thread){
-            isFinished = 1;
+			            isFinished = 1;
             break;
         }
     }
     return isFinished;
 }
-
 //removes argument threads from the Queue
 int removeThread(queue** argQ, mypthread_t thread){
     int remove = -1;
@@ -558,7 +517,6 @@ int removeThread(queue** argQ, mypthread_t thread){
     }
     return remove;
 }
-
 void updateQ(queue** argQ, mypthread_t thread){
 	for(queue* ptr = *argQ; ptr != NULL; ptr = ptr->next){
         if(ptr->TCB->id == thread){

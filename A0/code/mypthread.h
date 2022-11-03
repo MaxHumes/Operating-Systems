@@ -111,7 +111,7 @@ static void schedule();
 static void sched_RR();
 static void sched_PSJF();
 void enqueue(tcb* thread, queue** argQ);
-tcb* dequeue(queue** argQ, int status);
+tcb* dequeue(queue** argQ);
 tcb* getTCB(queue** argQ, mypthread_t thread);
 void readyThreads(queue** argQ, mypthread_t thread);
 void freeTCBQueue(void);
