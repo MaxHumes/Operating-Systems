@@ -81,7 +81,6 @@ typedef struct mypthread_mutex_t
 } mypthread_mutex_t;
 
 /* Function Declarations: */
-void test();
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg);
@@ -119,6 +118,7 @@ void freeTCBQueue(void);
 void freeThread(queue* argQ);
 int isFinished(queue** argQ, mypthread_t thread);
 int removeThread(queue** argQ, mypthread_t thread);
+void updateQ(queue** argQ, mypthread_t thread);
 
 #ifdef USE_MYTHREAD
 #define pthread_t mypthread_t

@@ -24,7 +24,7 @@ static void schedule();
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg)
 {
-	printf("\nIN PTHREAD CREATE\n");
+	// printf("\nIN PTHREAD CREATE\n");
 
 	if(threadID == 0){
 		currThread = threadID;
@@ -88,14 +88,14 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr, void *(*functi
 
 	// after everything is all set, push this thread into the ready queue
 	
-	printf("\nTHREAD CREATED\n");
+	// printf("\nTHREAD CREATED\n");
 	return 0;
 };
 
 /* current thread voluntarily surrenders its remaining runtime for other threads to use */
 int mypthread_yield()
 {
-    printf("\nIN PTHREAD YIELD\n");
+    // printf("\nIN PTHREAD YIELD\n");
 	// YOUR CODE HERE
 	
 	// change current thread's state from Running to Ready
@@ -139,10 +139,10 @@ int mypthread_join(mypthread_t thread, void **value_ptr)
 
 	// wait for a specific thread to terminate
 	// deallocate any dynamic memory created by the joining thread
-    printf("\nIN PTHREAD JOIN\n");
+    // printf("\nIN PTHREAD JOIN\n");
     //check if thread is finished
     if(isFinished(&mainQueue, thread) == 1){
-		printf("isFinished");
+		// printf("isFinished");
         //thread done
         tcb* temp = getTCB(&mainQueue, thread);
         if(value_ptr != NULL){
@@ -156,7 +156,7 @@ int mypthread_join(mypthread_t thread, void **value_ptr)
             }
 			mypthread_exit(value_ptr);
         }
-        printf("\nPTHREAD JOINED\n");
+        // printf("\nPTHREAD JOINED\n");
         return 0;
     }
 	//set the thread to waiting
@@ -166,7 +166,7 @@ int mypthread_join(mypthread_t thread, void **value_ptr)
     tcb* temp = getTCB(&mainQueue, thread);
     temp->valPtr = value_ptr;
     schedule();
-    printf("\nPTHREAD WAITING\n");
+    // printf("\nPTHREAD WAITING\n");
 	return 0;
 };
 
@@ -178,6 +178,7 @@ int mypthread_mutex_init(mypthread_mutex_t *mutex, const pthread_mutexattr_t *mu
 	//initialize data structures for this mutex
 
 	mutex->lock = UNLOCKED;
+	mutex->blockedQueue = NULL;
 	return 0;
 
 };
@@ -198,7 +199,9 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex)
 		//add to mutex blocked queue
 		enqueue(currTCB, &(mutex->blockedQueue));			
 		//remove thread from main queue
-		removeThread(&mainQueue, currTCB->id);
+		// currTCB->status = REMOVE;
+		// removeThread(&mainQueue, currTCB->id);
+		schedule();
 	}
 	//lock acquired
 	return 0;
@@ -219,7 +222,8 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex)
 	if(next != NULL)
 	{
 		next->TCB->status = READY;	
-		enqueue(next->TCB, &mainQueue);
+		updateQ(&mainQueue, next->TCB->id);
+		// enqueue(next->TCB, &mainQueue);
 		dequeue(&(mutex->blockedQueue));
 	}
 	
@@ -240,7 +244,7 @@ int mypthread_mutex_destroy(mypthread_mutex_t *mutex)
 void schedule()
 {
 	// YOUR CODE HERE
-	printf("called schedule()");	
+	// printf("called schedule()");	
 	// each time a timer signal occurs your library should switch in to this context
 	
 	// be sure to check the SCHED definition to determine which scheduling algorithm you should run
@@ -260,7 +264,7 @@ void schedule()
 /* Round Robin scheduling algorithm */
 static void sched_RR()
 {
-	printf("called sched_RR");
+	// printf("called sched_RR");
 	//ignore alarm during scheduling
     	//signal(SIGALRM, SIG_IGN);
 
@@ -275,20 +279,20 @@ static void sched_RR()
 	enqueue(prevTCB, &mainQueue);
 	//restart timer
 	timer_init(timer, interval);
-	printf("before\n");
+	// printf("before\n");
 	//switch context
 	if(swapcontext(&(prevTCB->context),&(currTCB->context)) == -1){
 		printf("swapcontext error\n");
 	}
-	printf("\nSCHEDULE END\n");
+	// printf("\nSCHEDULE END\n");
 	return;
 }
 
 /* Preemptive PSJF (STCF) scheduling algorithm */
 static void sched_PSJF()
 {
-	printf("called sched_PSJF");
-    printf("\nIN SCHEDULE\n");
+	// printf("called sched_PSJF");
+    // printf("\nIN SCHEDULE\n");
 
 	//ignore alarm during scheduling
     signal(SIGALRM, SIG_IGN);
@@ -309,7 +313,7 @@ static void sched_PSJF()
 	//switch context
 	swapcontext(&(prevTCB->context),&(currTCB->context));
 	
-    printf("\nSCHEDULE END\n");
+    // printf("\nSCHEDULE END\n");
 	return;
 }
 
@@ -372,7 +376,7 @@ inserts thread into queue
 (for RR: just inserts at the end)
 */
 void enqueue(tcb* thread, queue** argQ){
-    printf("\nENQUEING THREAD\n");
+    // printf("\nENQUEING THREAD\n");
     // printThreadQueue(argQ);
 	int thisQuantum = thread->elapsedQuantums;
 	//queue is null
@@ -392,7 +396,7 @@ void enqueue(tcb* thread, queue** argQ){
 	//queue is empty
 	if(head == NULL){
 		*argQ = newThread;
-		printf("\nFINISHED ENQUEING THREAD\n");
+		// printf("\nFINISHED ENQUEING THREAD\n");
 		// printThreadQueue(argQ);
 		return;
 	}
@@ -401,7 +405,7 @@ void enqueue(tcb* thread, queue** argQ){
 		newThread->next = head;
 		head->prev = newThread;
 		*argQ = newThread;
-		printf("\nFINISHED ENQUEING THREAD\n");
+		// printf("\nFINISHED ENQUEING THREAD\n");
 		// printThreadQueue(argQ);
 		return;
 	}
@@ -430,13 +434,13 @@ void enqueue(tcb* thread, queue** argQ){
 	ptr->next = newThread;
 	newThread->prev = ptr;	
 
-    printf("\nFINISHED ENQUEING THREAD\n");
+    // printf("\nFINISHED ENQUEING THREAD\n");
 	// printThreadQueue(argQ);
 }
 
 //returns NULL if queue is empty
 tcb* dequeue(queue** argQ){
-    printf("\nDEQUEING THREAD\n");
+    // printf("\nDEQUEING THREAD\n");
 	// printThreadQueue(argQ);
 	//reference to the head of the queue
 	queue* temp = *argQ;
@@ -480,7 +484,7 @@ tcb* dequeue(queue** argQ){
 			}
 		}
 	}
-    printf("\nFINISHED DEQUEING THREAD\n");
+    // printf("\nFINISHED DEQUEING THREAD\n");
 	// printThreadQueue(argQ);
 	return returnTCB;
 }
@@ -585,4 +589,13 @@ int removeThread(queue** argQ, mypthread_t thread){
         }
     }
     return remove;
+}
+
+void updateQ(queue** argQ, mypthread_t thread){
+	for(queue* ptr = *argQ; ptr != NULL; ptr = ptr->next){
+        if(ptr->TCB->id == thread){
+            ptr->TCB->status = READY;
+            break;
+        }
+    }
 }
