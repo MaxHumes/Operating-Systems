@@ -496,9 +496,9 @@ void timer_init(struct sigaction timer, struct itimerval interval){
 
 	//timer calls schedule when it goes off, no need for sighandler or scheduler context
     timer.sa_handler = &schedule;
-    sigset_t maskSet;
-    sigaddset(&maskSet, SIGALRM);
-    timer.sa_mask = maskSet;
+    // sigset_t maskSet;
+    // sigaddset(&maskSet, SIGALRM);
+    // timer.sa_mask = maskSet;
 
     if(sigaction(SIGALRM, &timer, NULL) < 0){
         perror("SIGACTION failed\n");

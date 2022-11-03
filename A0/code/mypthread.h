@@ -25,7 +25,7 @@
 
 #define STACK_SIZE 32000
 #define NUM_OF_QUEUES 5
-#define QUANTUM 10000
+#define QUANTUM 500
 //thread status
 #define READY 1
 #define YIELDED 2
