@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "umalloc.h"
+
+static char block[MEM_SIZE];
+char init = 'F';
+
+size_t getSize(char* ptr){
+
+  size_t val = (META)(*ptr);
+  
+  return val;
+  
+}
+
+char getStatus(char* ptr){
+
+  return *(ptr+3);
+  
+}
+
+void setStatus(char* ptr, char status){
+
+  *(ptr+3) = status;
+  return;
+}
+
+void setSize(char* ptr,size_t size){
+  printf("%ld\n",size);
+  META* head = (META*)ptr;
+  char status = getStatus(ptr);
+  *head=size;
+  setStatus(ptr,status);
+  return;
+}
+
+void* umalloc(size_t size, const char* fileName, int lineNumber){
+
+  if(size<=0||size>=MEM_SIZE-sizeof(META)){
+    printf("Attempt to allocate illegal amount of memory in %s, line %d.\n", fileName, lineNumber);
+    return NULL;
+  }
+
+  if(init=='F'){
+    initialize();
+  }
+
+  return NULL;
+  
+}//end umalloc
+
+void ufree(void* ptr, const char* fileName, int lineNumber){
+
+
+  return;
+}//end ufree
+
+void initialize(){
+  META* head = (META*)(&block[0]);
+  *head = ((int)'T')<<24;
+  init='T';
+  setSize(&block[0],MEM_SIZE-sizeof(META));
+  printf("META %c\n",getStatus(&block[0]));
+  printf("SIZE %ld\n",getSize(&block[0]));
+}
+
+
