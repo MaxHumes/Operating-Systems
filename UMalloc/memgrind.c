@@ -105,6 +105,7 @@ int main(){
     saturation();
     time_overhead();
     intermediate_coalescence();
+    
     return 0;
 }
 
