@@ -7,6 +7,7 @@
 //used for pointers in saturation test
 static char* sat_arr[MEM_SIZE]; 
 size_t max = 1; 
+int sat_space = 0;
 
 void consistency(){
     char* first = (char*)malloc(5); 
@@ -58,13 +59,12 @@ void basic_coalescence(){
     }
 }
 
-int sat_space = 0;
 void saturation(){
     for(int i = 0; i < 9216; i++){
         sat_arr[i] = (char*)malloc(1024); 
     }
     int j = 9216;
-    while(sat_arr[j-1] != NULL){
+    while(sat_arr[j - 1] != NULL){
         sat_arr[j] = (char*)malloc(1); 
         j++;
     }
@@ -105,7 +105,7 @@ int main(){
     saturation();
     time_overhead();
     intermediate_coalescence();
-    
+
     return 0;
 }
 
