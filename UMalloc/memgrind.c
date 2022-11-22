@@ -10,6 +10,7 @@ size_t max = 1;
 int sat_space = 0;
 
 void consistency(){
+printf("-----CONSISTENCY-----\n");
     char* first = (char*)malloc(5); 
     first[0] = 'f';
     first[1] = 'i';
@@ -28,6 +29,7 @@ void consistency(){
 }
 
 void maximization(){
+printf("-----MAXIMIZATION-----\n");
     size_t size = 1; 
     char* allocate = (char*) malloc(size); 
     while(allocate != NULL){
@@ -45,6 +47,7 @@ void maximization(){
 }
 
 void basic_coalescence(){
+printf("-----BASIC COALESCENCE-----\n");
     char* half_alloc = (char*) malloc(max / 2); 
     char* quarter_alloc = (char*) malloc(max / 4); 
     free(half_alloc); 
@@ -60,6 +63,7 @@ void basic_coalescence(){
 }
 
 void saturation(){
+printf("-----SATURATION-----\n");
     for(int i = 0; i < 9216; i++){
         sat_arr[i] = (char*)malloc(1024); 
     }
@@ -73,6 +77,7 @@ void saturation(){
 }
 
 void time_overhead(){
+printf("-----TIME OVERHEAD-----\n");
     free(sat_arr[sat_space]); 
     clock_t start_t, end_t;
     start_t = clock();
@@ -85,6 +90,7 @@ void time_overhead(){
 }
 
 void intermediate_coalescence(){
+printf("-----INTERMEDIATE COALESCENCE-----\n");
     for(int i = 0; i < sat_space; i++){
         free(sat_arr[i]); 
     }

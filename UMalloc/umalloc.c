@@ -161,13 +161,13 @@ void initialize(){
 
 char getStatus(char* ptr){
 
-  return *(ptr+3);
+  return *(ptr+sizeof(META)-1);
   
 }
 
 void setStatus(char* ptr, char status){
 
-  *(ptr+3) = status;
+  *(ptr+sizeof(META)-1) = status;
   return;
 }
 
