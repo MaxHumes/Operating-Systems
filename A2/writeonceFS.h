@@ -13,6 +13,7 @@
 
 typedef struct LinkedList{
 	int index;
+	void* buffer;
 	struct LinkedList* nextBlock;
 } LinkedList;
 typedef struct WO_File{
