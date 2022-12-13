@@ -7,13 +7,14 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <string.h>
 #include "writeonceFS.h"
 
 WO_File *opened[100]; 
 WO_File *closed[100];
 int numFilesOpen = 0;
 int numFilesClosed = 0;
+int usedMem = 0;
 
 /*
 WO_File *newFile;
@@ -132,12 +133,83 @@ int wo_create(char* fileName, int flags){
 }
 
 int wo_read(int fd, void* buf, int bytes){
-	return 0;
+	int index = -1;
+	for (int i = 0; i < numFilesOpen; i++){ //find the index of the file in opened
+		if (fd == opened[i]->fd){
+			index = i;
+			break;
+		}
+	}
+
+	if (index == -1) //if not found, return errno
+		return errno;
+
+	return read(fd, buf, bytes);
+}
+void append(LinkedList** head, char* buf, int index, int size){
+	LinkedList* newBlock = malloc(sizeof(LinkedList));
+	LinkedList* last = *head;
+
+	newBlock->buffer = malloc(BLOCK_SIZE);
+	memcpy(newBlock->buffer, buf, size);
+	
+	newBlock->index = index;
+	newBlock->nextBlock = NULL;
+
+	if (*head == NULL){
+		*head = newBlock;
+		return;
+	}
+
+	while(last->nextBlock != NULL){
+		last = last->nextBlock;
+	}
+	last->nextBlock = newBlock;
+	return;
+}
+int wo_write(int fd, void* buf, int bytes){
+	int index = -1;
+	for (int i = 0; i < numFilesOpen; i++){ //find the index of the file in opened
+		if (fd == opened[i]->fd){
+			index = i;
+			break;
+		}
+	}
+
+	if (index == -1) //if not found, return errno
+		return errno;
+
+	opened[index]->blocks = NULL;
+	int writeBytes = 0;
+	int remainingBytes = bytes;
+	int i = 0;
+	while (remainingBytes > 0){
+		
+		int count = bytes;
+		if (usedMem >= DISK_SIZE){	//if written memory has reached the threshold of disk size
+			printf("Not enough memory available.");
+			break;
+		}
+		else if (usedMem + bytes > DISK_SIZE){	//if write goes over disk size, write data partially
+			count = DISK_SIZE - usedMem;
+		}
+		if (bytes > BLOCK_SIZE)	//set the bytes being written to the max block size
+			count = BLOCK_SIZE;
+		
+		if (strlen(buf) < count){
+			count = strlen(buf) + 1;
+			remainingBytes = count;
+		}
+		append(&opened[index]->blocks + (i * DISK_SIZE), buf, index, count); 
+		writeBytes += count;
+		usedMem += count;
+		remainingBytes -= count;
+		i++;
+	}
+	
+	return writeBytes;
 }
 
-int wo_write(int fd, void* buf, int bytes){
-	return 0;
-}
 
 int wo_close(int fd){
 
@@ -164,3 +236,4 @@ int wo_close(int fd){
 
 	return 0;
 }
+
