@@ -46,7 +46,21 @@ int wo_mount(char* fileName, void* buf){
 	return 0;
 }
 
-int wo_unmount(void* addr){
+int wo_unmount(void* buf){
+	//open file on OS
+	FILE* fp = fopen("disk.data", "w");
+	if(fp != NULL)
+	{
+		fwrite(buf, sizeof(char), DISK_SIZE, fp);
+		if(ferror(fp)){
+			return errno;
+		}
+		fclose(fp);
+	}
+	else
+	{
+		return errno;
+	}
 	return 0;
 }
 
