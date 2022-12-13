@@ -158,7 +158,7 @@ int wo_read(int fd, void* buf, int bytes){
 	if (index == -1) //if not found, return errno
 		return errno;
 
-	return read(fd, buf, bytes);
+	return read(opened[index]->fd, buf, bytes);
 }
 void append(LinkedList** head, char* buf, int index, int size){
 	LinkedList* newBlock = malloc(sizeof(LinkedList));
