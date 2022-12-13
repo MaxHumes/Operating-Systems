@@ -20,3 +20,17 @@ typedef struct WO_File{
 	int flags;
 	LinkedList* blocks;
 } WO_File;
+
+int wo_mount(char* fileName, void* buf);
+
+int wo_unmount(void* buf);
+
+int wo_open(char* fileName, int flags);
+
+int wo_create(char* fileName, int flags);
+
+int wo_read(int fd, void* buf, int bytes);
+
+int wo_write(int fd, void* buf, int bytes);
+
+int wo_close(int fd);
