@@ -17,5 +17,6 @@ typedef struct LinkedList{
 } LinkedList;
 typedef struct WO_File{
 	int fd;
-	LinkedList blocks;
+	int flags;
+	LinkedList* blocks;
 } WO_File;
