@@ -5,21 +5,18 @@
 #define DISK_SIZE 4000000
 #define BLOCK_SIZE 1000
 
-#define WO_RDONLY 0
-#define WO_WRONLY 1
-#define WO_RDWR 2
+#define WO_RDONLY 1
+#define WO_WRONLY 2
+#define WO_RDWR 4
 
-#define WO_CREAT 3
 
-typedef struct LinkedList{
-	int index;
-	void* buffer;
-	struct LinkedList* nextBlock;
-} LinkedList;
+
 typedef struct WO_File{
-	int fd;
-	int flags;
-	LinkedList* blocks;
+	int fd; //file descriptor id, numbered in order of creation
+	char open; //T if file is open, F if closed. Defaults to open on create.
+	char name[16]; //name of file
+	int createFlags; //flags file was created with
+	int currFlags; //flags fi2le was opened with.
 } WO_File;
 
 int wo_mount(char* fileName, void* buf);

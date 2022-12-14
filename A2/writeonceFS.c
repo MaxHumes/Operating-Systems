@@ -10,12 +10,12 @@
 #include <string.h>
 #include "writeonceFS.h"
 
-WO_File *opened[100]; 
-WO_File *closed[100];
-int numFilesOpen = 0;
-int numFilesClosed = 0;
+
+int numFiles = 0;
+WO_File *fileData;
+
 int usedMem = 0;
-void* diskData;
+char* diskData;
 char* path;
 
 /*
@@ -39,6 +39,7 @@ int wo_mount(char* fileName, void* buf){
 			return errno;
 		}
 		diskData = buf;
+		fileData = (WO_File*)diskData+(DISK_SIZE/2);
 		fclose(fp);
 	}
 	else
@@ -69,89 +70,63 @@ int wo_unmount(void* buf){
 
 int wo_open(char* fileName, int flags){
 
-	int mode = -1; //use access to check if file exists and can be opened with perms
-	if(flags == WO_RDONLY){
-	mode = R_OK;
-	}
-	else if(flags == WO_WRONLY){
-	mode = W_OK;
-	}
-	else if(flags == WO_RDWR){
-	mode = R_OK|W_OK;
-	}
-	if(access(fileName,mode) == 0){//file exists and permissions are allowed
-		
-		int openFlag = -1; //convert to open(2) flags
-		if(mode == R_OK){
-		openFlag = O_RDONLY;
+	int index = -1; //find file, if not then return errno
+	for(int i=0; i<numFiles; i++){
+		WO_File* temp = fileData+i;
+		if(strcmp(fileName, temp->name) == 0){ //file found, break out
+		index = i;
+		break;
 		}
-		else if(mode == W_OK){
-		openFlag = O_WRONLY;
-		}
-		else if(mode == (R_OK|W_OK) ){
-		openFlag = O_RDWR;
-		}
-		
-		int fd = open(fileName, openFlag);
-		
-		if(fd==-1){
-		return errno;
-		}
-		
-		WO_File *newFile;
-		newFile = malloc(sizeof(WO_File));
-		newFile->fd = fd;
-		newFile->flags = openFlag;
-		
-		opened[numFilesOpen] = newFile;
-		numFilesOpen+=1;
-		
 	}
-	else{//file does not exist and/or file permissions are not allowed
+	if(index == -1){ //file not found
+		errno = ENOENT;
 		return errno;
 	}
-	return 0;
+	
+	WO_File* file = fileData+index;
+	
+	if(file->createFlags == WO_RDWR && flags <= WO_RDWR){ //read+write case: anything works
+		file->currFlags = flags;
+		return file->fd;
+	}
+	else if(file->createFlags != flags){ //any other case: only allow exactly that flag
+		file->currFlags = flags;
+		return file->fd;
+	}
+	
+	return -1;
 }
 
 int wo_create(char* fileName, int flags){
 
-	if(access(fileName,F_OK) != 0){//file does not exist
-		
-		int openFlag = -1; //convert to open(2) flags
-		if(flags == WO_RDONLY){
-		openFlag = O_RDONLY;
-		}
-		else if(flags == WO_WRONLY){
-		openFlag = O_WRONLY;
-		}
-		else if(flags == WO_RDWR ){
-		openFlag = O_RDWR;
-		}
-		
-		int fd = open(fileName, openFlag, O_CREAT);
-		
-		if(fd==-1){
-		return errno;
-		}
-		
-		WO_File *newFile;
-		newFile = malloc(sizeof(WO_File));
-		newFile->fd = fd;
-		newFile->flags = openFlag;
-		
-		opened[numFilesOpen] = newFile;
-		numFilesOpen+=1;
-		
-	}
-	else{//file does not exist and/or file permissions are not allowed
+	if(numFiles == 50){ //if there are 50 files, do not make a file.
+		errno = EDQUOT;
 		return errno;
 	}
-	return 0;
+	
+	for(int i=0; i<numFiles; i++){ //check for duplicate name
+		WO_File* temp = fileData+i;
+		if(strcmp(fileName, temp->name) == 0){
+			errno = EEXIST;
+			return errno;
+		}
+	}
+	
+	WO_File* newFile = fileData+numFiles; //if no duplicate name, create the file.
+	newFile->fd = numFiles;
+	newFile->open = 'T';
+	strcpy(newFile->name , fileName);
+	newFile->createFlags = flags;
+	newFile->currFlags = flags;
+	
+	numFiles+=1; //new file created, increase numFiles
+	
+	return newFile->fd;
 }
 
 int wo_read(int fd, void* buf, int bytes){
 	int index = -1;
-	for (int i = 0; i < numFilesOpen; i++){ //find the index of the file in opened
+	for (int i = 0; i < numFiles; i++){ //find the index of the file in opened
 		if (fd == opened[i]->fd){
 			index = i;
 			break;
@@ -186,7 +161,7 @@ void append(LinkedList** head, char* buf, int index, int size){
 }
 int wo_write(int fd, void* buf, int bytes){
 	int index = -1;
-	for (int i = 0; i < numFilesOpen; i++){ //find the index of the file in opened
+	for (int i = 0; i < numFiles; i++){ //find the index of the file in opened
 		if (fd == opened[i]->fd){
 			index = i;
 			break;
@@ -230,27 +205,17 @@ int wo_write(int fd, void* buf, int bytes){
 
 int wo_close(int fd){
 
-
-	int index=-1;
-	for(int i=0; i<numFilesOpen; i++){ //find the index of the file in opened
-		if(fd==opened[i]->fd){
-			index=i;
-			break;
-		}
-	}
-	if(index == -1){ //if not found, return errno
-	return errno;
-	}
-	
-	closed[numFilesClosed] = opened[index]; //add file to closed
-	opened[index] = NULL; //remove file from opened
-	
-	numFilesClosed+=1; //one more closed file
-	
-	for(int i=index; i<99; i++){ //shift every opened file one position left
-	opened[i] = opened[i+1];
+	if(fd<0 || fd>=numFiles){ //if fd is not legal, return errno
+		errno = EBADF;
+		return errno;
 	}
 
+	WO_File* file = fileData+fd;
+	
+	file->open = 'F';
+	file->currFlags = 0;
+	
 	return 0;
+
 }
 
