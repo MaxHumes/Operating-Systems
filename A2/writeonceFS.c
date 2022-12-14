@@ -15,6 +15,8 @@ WO_File *closed[100];
 int numFilesOpen = 0;
 int numFilesClosed = 0;
 int usedMem = 0;
+void* diskData;
+char* path;
 
 /*
 WO_File *newFile;
@@ -36,6 +38,7 @@ int wo_mount(char* fileName, void* buf){
 		if(ferror(fp)){
 			return errno;
 		}
+		diskData = buf;
 		fclose(fp);
 	}
 	else
