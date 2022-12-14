@@ -18,6 +18,9 @@ int usedMem = 0;
 char* diskData;
 char* path;
 
+unsigned short* owners;
+int numBlocks = 0;
+
 /*
 WO_File *newFile;
 	newFile = malloc(sizeof(WO_File));
@@ -39,6 +42,7 @@ int wo_mount(char* fileName, void* buf){
 			return errno;
 		}
 		diskData = buf;
+		owners = (unsigned short*)(diskData + DISK_SIZE - sizeof(unsigned short) * 100);
 		fileData = (WO_File*)diskData+(DISK_SIZE/2);
 		fclose(fp);
 	}
@@ -125,76 +129,65 @@ int wo_create(char* fileName, int flags){
 }
 
 int wo_read(int fd, void* buf, int bytes){
-	int index = -1;
-	for (int i = 0; i < numFiles; i++){ //find the index of the file in opened
-		if (fd == opened[i]->fd){
-			index = i;
-			break;
-		}
+	if(fd<0 || fd>=numFiles){ //if fd is not legal, return errno
+		errno = EBADF;
+		return errno;
 	}
 
-	if (index == -1) //if not found, return errno
+	WO_File* file = fileData+fd;
+	if (file->open == 'F' ||file->currFlags != WO_RDONLY || file->currFlags != WO_RDWR){	//check permissions
 		return errno;
+	}
 
-	return read(opened[index]->fd, buf, bytes);
-}
-void append(LinkedList** head, char* buf, int index, int size){
-	LinkedList* newBlock = malloc(sizeof(LinkedList));
-	LinkedList* last = *head;
-
-	newBlock->buffer = malloc(BLOCK_SIZE);
-	memcpy(newBlock->buffer, buf, size);
 	
-	newBlock->index = index;
-	newBlock->nextBlock = NULL;
-
-	if (*head == NULL){
-		*head = newBlock;
-		return;
-	}
-
-	while(last->nextBlock != NULL){
-		last = last->nextBlock;
-	}
-	last->nextBlock = newBlock;
-	return;
-}
-int wo_write(int fd, void* buf, int bytes){
-	int index = -1;
-	for (int i = 0; i < numFiles; i++){ //find the index of the file in opened
-		if (fd == opened[i]->fd){
-			index = i;
-			break;
+	for (int i = 0; i < sizeof(owners)/sizeof(unsigned short*); i++){
+		if (owners[i] == fd){
+			char* dest = diskData + BLOCK_SIZE * i;
+			memcpy(buf, dest, BLOCK_SIZE + 1);
 		}
 	}
+	
+	return bytes;
+}
 
-	if (index == -1) //if not found, return errno
+int wo_write(int fd, void* buf, int bytes){
+
+	if(fd<0 || fd>=numFiles){ //if fd is not legal, return errno
+		errno = EBADF;
 		return errno;
+	}
 
-	opened[index]->blocks = NULL;
+	WO_File* file = fileData+fd;
+	if (file->open == 'F' || file->currFlags != WO_WRONLY || file->currFlags != WO_RDWR){	//check permissions
+		return errno;
+	}
+
 	int writeBytes = 0;
 	int remainingBytes = bytes;
 	int i = 0;
 	while (remainingBytes > 0){
 		
-		int count = bytes;
-		if (usedMem >= DISK_SIZE){	//if written memory has reached the threshold of disk size
+		int count = remainingBytes;
+		//if written memory has reached the threshold of disk size
+		if (diskData[3999 * BLOCK_SIZE] != '\0'){	//3999 is final block. if used, no free blocks left
 			printf("Not enough memory available.");
 			break;
 		}
-		else if (usedMem + bytes > DISK_SIZE){	//if write goes over disk size, write data partially
-			count = DISK_SIZE - usedMem;
+
+		char* data = diskData + (fd * BLOCK_SIZE) + (i * BLOCK_SIZE);
+		while(data[0] == '\0'){	//find next free block
+			data += BLOCK_SIZE;
+			i++;
 		}
+
 		if (bytes > BLOCK_SIZE)	//set the bytes being written to the max block size
 			count = BLOCK_SIZE;
-		
-		if (strlen(buf) < count){
-			count = strlen(buf) + 1;
-			remainingBytes = count;
-		}
-		append(&opened[index]->blocks + (i * DISK_SIZE), buf, index, count); 
+
+		char* src = diskData + (fd * BLOCK_SIZE) + (i * BLOCK_SIZE);
+		memcpy(src, buf, count + 1);
+		owners[numBlocks] = fd; 
+		numBlocks++;
 		writeBytes += count;
-		usedMem += count;
 		remainingBytes -= count;
 		i++;
 	}
@@ -218,4 +211,3 @@ int wo_close(int fd){
 	return 0;
 
 }
-
