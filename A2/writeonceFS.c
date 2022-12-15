@@ -18,6 +18,7 @@ int usedMem = 0;
 char* diskData;
 char* path;
 
+int totalBlocks = 100;
 unsigned short* owners;
 int numBlocks = 0;
 
@@ -42,7 +43,7 @@ int wo_mount(char* fileName, void* buf){
 			return errno;
 		}
 		diskData = buf;
-		owners = (unsigned short*)(diskData + DISK_SIZE - sizeof(unsigned short) * 100);
+		owners = (unsigned short*)(diskData + DISK_SIZE - sizeof(unsigned short) * totalBlocks);
 		fileData = (WO_File*)diskData+(DISK_SIZE/2);
 		fclose(fp);
 	}
@@ -140,7 +141,7 @@ int wo_read(int fd, void* buf, int bytes){
 	}
 
 	
-	for (int i = 0; i < sizeof(owners)/sizeof(unsigned short*); i++){
+	for (int i = 0; i < totalBlocks; i++){
 		if (owners[i] == fd){
 			char* dest = diskData + BLOCK_SIZE * i;
 			memcpy(buf, dest, BLOCK_SIZE + 1);
@@ -169,7 +170,7 @@ int wo_write(int fd, void* buf, int bytes){
 		
 		int count = remainingBytes;
 		//if written memory has reached the threshold of disk size
-		if (diskData[3999 * BLOCK_SIZE] != '\0'){	//3999 is final block. if used, no free blocks left
+		if (diskData[(DISK_SIZE/BLOCK_SIZE - 1) * BLOCK_SIZE] != '\0'){	//3999 is final block. if used, no free blocks left
 			printf("Not enough memory available.");
 			break;
 		}
