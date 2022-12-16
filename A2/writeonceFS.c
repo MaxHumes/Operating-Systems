@@ -171,9 +171,9 @@ int wo_read(int fd, void* buf, int bytes){
 			count = BLOCK_SIZE;
 		}
 		if (owners[i] == fd){
-			char* dest = diskData + (DISK_SIZE/BLOCK_SIZE/2 + i) * BLOCK_SIZE;
+			char* src = diskData + i * BLOCK_SIZE;
 			// memcpy(buf, dest, BLOCK_SIZE + 1);
-			memcpy(buf + readBytes, dest, count);
+			memcpy(buf + readBytes, src, count);
 		}
 		remainingBytes -= count;
 		readBytes += count;
@@ -201,7 +201,7 @@ int wo_write(int fd, void* buf, int bytes){
 		
 		int count = remainingBytes;
 		//if written memory has reached the threshold of disk size
-		if (diskData[(DISK_SIZE/BLOCK_SIZE - 1) * BLOCK_SIZE] != '\0'){	//3999 is final block. if used, no free blocks left
+		if (diskData[DISK_SIZE/2] != '\0'){	//1999 is final block. if used, no free blocks left
 			printf("Not enough memory available.");
 			break;
 		}
@@ -209,14 +209,13 @@ int wo_write(int fd, void* buf, int bytes){
 		char* data = diskData;
 
 		while(data[i * BLOCK_SIZE] != '\0'){	//find next free block
-			// data += BLOCK_SIZE;
 			i++;
 		}
 		
 		if (count > BLOCK_SIZE)	//set the bytes being written to the max block size
 			count = BLOCK_SIZE;
 
-		char* src = diskData + (fd * BLOCK_SIZE) + (i * BLOCK_SIZE);
+		char* src = diskData + (i * BLOCK_SIZE);
 		memcpy(src, buf + writeBytes, count);
 		owners[numBlocks] = fd; 
 		numBlocks++;
@@ -244,3 +243,6 @@ int wo_close(int fd){
 	return 0;
 
 }
+
+
+
