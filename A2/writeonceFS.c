@@ -16,25 +16,27 @@ WO_File *fileData;
 
 int usedMem = 0;
 char* diskData;
-char* path;
+void* diskPath;
 
 int totalBlocks = 100;
 unsigned short* owners;
 int numBlocks = 0;
-
-/*
-WO_File *newFile;
-	newFile = malloc(sizeof(WO_File));
-	newFile->fd = fd;
-	newFile->flags = flags;
-*/
 
 
 //read disk with fileName to buf
 int wo_mount(char* fileName, void* buf){
 	buf = malloc(DISK_SIZE);
 
-	//open disk file
+	char newDisk = 'F';
+	//check if disk exists on native OS
+	if(access(fileName, F_OK) != 0)
+	{
+		diskPath = fileName;
+		wo_unmount(buf);
+	       	newDisk = 'T';	
+	}
+
+	//open disk file for reading
 	FILE* fp = fopen(fileName, "r");
 	if(fp != NULL)
 	{
@@ -44,7 +46,17 @@ int wo_mount(char* fileName, void* buf){
 		}
 		diskData = buf;
 		owners = (unsigned short*)(diskData + DISK_SIZE - sizeof(unsigned short) * totalBlocks);
-		fileData = (WO_File*)diskData+(DISK_SIZE/2);
+		fileData = (WO_File*)diskData+((DISK_SIZE/sizeof(WO_File))/2);
+		diskPath = fileName;
+		
+		if(newDisk == 'F')
+		{
+			numFiles = *(((int*)diskData) + ((DISK_SIZE - (DISK_SIZE/4))/sizeof(int)));
+		}
+		else
+		{
+			numFiles = 0;
+		}
 		fclose(fp);
 	}
 	else
@@ -56,8 +68,14 @@ int wo_mount(char* fileName, void* buf){
 }
 
 int wo_unmount(void* buf){
+	if(diskPath == NULL)
+	{
+		errno = EINVAL;
+		return errno;
+	}
+
 	//open file on OS
-	FILE* fp = fopen("disk.data", "w");
+	FILE* fp = fopen(diskPath, "w");
 	if(fp != NULL)
 	{
 		fwrite(buf, sizeof(char), DISK_SIZE, fp);
@@ -123,9 +141,10 @@ int wo_create(char* fileName, int flags){
 	strcpy(newFile->name , fileName);
 	newFile->createFlags = flags;
 	newFile->currFlags = flags;
-	
+
 	numFiles+=1; //new file created, increase numFiles
-	
+	*(((int*)diskData) + ((DISK_SIZE - (DISK_SIZE/4))/sizeof(int))) = numFiles; 
+
 	return newFile->fd;
 }
 

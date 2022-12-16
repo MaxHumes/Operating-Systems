@@ -4,12 +4,10 @@
 
 int main(int argc, char* argv[])
 {
-	char* buf = malloc(DISK_SIZE);
-	buf[0] = 'b';
-	buf[1] = 'i';
-	buf[2] = 't';
-	buf[3] = 'c';
-	buf[4] = 'h';
-
+	char* buf;
+	
+	wo_mount("disk.data", buf);
+	wo_create("testfile.txt", WO_RDWR);
+	
 	wo_unmount(buf);
 }
