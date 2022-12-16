@@ -155,30 +155,42 @@ int wo_read(int fd, void* buf, int bytes){
 	}
 
 	WO_File* file = fileData+fd;
-	if (file->open == 'F' ||file->currFlags != WO_RDONLY || file->currFlags != WO_RDWR){	//check permissions
+	if (file->open == 'F' ||file->currFlags == WO_WRONLY){	//check permissions
+		errno = EACCES;
 		return errno;
-	}
+	}	
 
-	
+	int readBytes = 0;
+	int remainingBytes = bytes;
 	for (int i = 0; i < totalBlocks; i++){
-		if (owners[i] == fd){
-			char* dest = diskData + BLOCK_SIZE * i;
-			memcpy(buf, dest, BLOCK_SIZE + 1);
+
+		int count = remainingBytes;
+		if (count == 0)
+			break;
+		if (count > BLOCK_SIZE){
+			count = BLOCK_SIZE;
 		}
+		if (owners[i] == fd){
+			char* dest = diskData + (DISK_SIZE/BLOCK_SIZE/2 + i) * BLOCK_SIZE;
+			// memcpy(buf, dest, BLOCK_SIZE + 1);
+			memcpy(buf + readBytes, dest, count);
+		}
+		remainingBytes -= count;
+		readBytes += count;
 	}
 	
-	return bytes;
+	return readBytes;
 }
 
 int wo_write(int fd, void* buf, int bytes){
-
 	if(fd<0 || fd>=numFiles){ //if fd is not legal, return errno
 		errno = EBADF;
 		return errno;
 	}
 
 	WO_File* file = fileData+fd;
-	if (file->open == 'F' || file->currFlags != WO_WRONLY || file->currFlags != WO_RDWR){	//check permissions
+	if (file->open == 'F' || file->currFlags == WO_RDONLY){	//check permissions
+		errno = EACCES;
 		return errno;
 	}
 
@@ -194,24 +206,25 @@ int wo_write(int fd, void* buf, int bytes){
 			break;
 		}
 
-		char* data = diskData + (fd * BLOCK_SIZE) + (i * BLOCK_SIZE);
-		while(data[0] == '\0'){	//find next free block
-			data += BLOCK_SIZE;
+		char* data = diskData;
+
+		while(data[i * BLOCK_SIZE] != '\0'){	//find next free block
+			// data += BLOCK_SIZE;
 			i++;
 		}
-
-		if (bytes > BLOCK_SIZE)	//set the bytes being written to the max block size
+		
+		if (count > BLOCK_SIZE)	//set the bytes being written to the max block size
 			count = BLOCK_SIZE;
 
 		char* src = diskData + (fd * BLOCK_SIZE) + (i * BLOCK_SIZE);
-		memcpy(src, buf, count + 1);
+		memcpy(src, buf + writeBytes, count);
 		owners[numBlocks] = fd; 
 		numBlocks++;
 		writeBytes += count;
 		remainingBytes -= count;
 		i++;
 	}
-	
+
 	return writeBytes;
 }
 
