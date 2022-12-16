@@ -10,6 +10,7 @@
 #include <string.h>
 #include "writeonceFS.h"
 
+int fileNameCompare(char* stored, char* new);
 
 int numFiles = 0;
 WO_File *fileData;
@@ -23,10 +24,8 @@ unsigned short* owners;
 int numBlocks = 0;
 
 
-//read disk with fileName to buf
+//read disk with fileName to buf (requires buf already be allocated at least 4MB
 int wo_mount(char* fileName, void* buf){
-	buf = malloc(DISK_SIZE);
-
 	char newDisk = 'F';
 	//check if disk exists on native OS
 	if(access(fileName, F_OK) != 0)
@@ -45,6 +44,8 @@ int wo_mount(char* fileName, void* buf){
 			return errno;
 		}
 		diskData = buf;
+		
+		//set initial structures for accessing disk
 		owners = (unsigned short*)(diskData + DISK_SIZE - sizeof(unsigned short) * totalBlocks);
 		fileData = (WO_File*)diskData+((DISK_SIZE/sizeof(WO_File))/2);
 		diskPath = fileName;
@@ -96,7 +97,7 @@ int wo_open(char* fileName, int flags){
 	int index = -1; //find file, if not then return errno
 	for(int i=0; i<numFiles; i++){
 		WO_File* temp = fileData+i;
-		if(strcmp(fileName, temp->name) == 0){ //file found, break out
+		if(fileNameCompare(temp->name, fileName) == 0){ //file found, break out
 		index = i;
 		break;
 		}
@@ -129,7 +130,7 @@ int wo_create(char* fileName, int flags){
 	
 	for(int i=0; i<numFiles; i++){ //check for duplicate name
 		WO_File* temp = fileData+i;
-		if(strcmp(fileName, temp->name) == 0){
+		if(fileNameCompare(temp->name, fileName) == 0){
 			errno = EEXIST;
 			return errno;
 		}
@@ -244,5 +245,22 @@ int wo_close(int fd){
 
 }
 
+//helper function for file names
+int fileNameCompare(char* stored, char* new)
+{
+	int i;
+	for(i = 0; i < 16; i++)
+	{
+		if(stored[i] == '\000')
+		{
+			i++;
+			break;
+		}
+	}
 
+	char* modifiedName = malloc(i);
+	strncpy(modifiedName, stored, i);
+
+	return strcmp(modifiedName, new);	
+}
 
